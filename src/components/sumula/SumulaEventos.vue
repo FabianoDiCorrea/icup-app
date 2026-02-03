@@ -15,6 +15,17 @@
                     @click="alternar('VERMELHO')">🟥 Vermelho</BButton>
                 <BButton :variant="ferramentaAtiva === 'CRAQUE' ? 'primary' : 'outline-primary'"
                     @click="alternar('CRAQUE')">⭐ Craque</BButton>
+                <BButton
+    size="sm"
+    variant="outline-light"
+    class="ms-1"
+    @click="$emit('simular')"
+>
+    🎲 SIMULAR
+</BButton>
+
+
+
             </div>
         </div>
 

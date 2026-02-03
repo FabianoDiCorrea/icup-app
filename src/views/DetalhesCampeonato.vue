@@ -82,24 +82,24 @@
             <BCard class="shadow-sm">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h4 class="m-0">
-  <span v-if="typeof paginaAtual === 'string'">
-    RODADAS – GRUPO {{ paginaAtual }}
+  <span v-if="temGrupo">
+    RODADAS – GRUPO {{ grupoAtual }}
   </span>
-
   <span v-else>
     Rodada {{ rodadaAtual }}
   </span>
-
-  <span v-if="nomeFaseAtual" class="badge bg-info fs-6 ms-2">
-    {{ nomeFaseAtual }}
-  </span>
 </h4>
 
-                    <div class="d-flex justify-content-center align-items-center flex-wrap gap-1 my-2">
+
+                    <div
+  v-if="paginasAtuais.length"
+  class="d-flex justify-content-center align-items-center flex-wrap gap-1 my-2"
+>
+
   <!-- SETA ESQUERDA -->
   <button
     class="btn btn-sm btn-outline-secondary"
-    :disabled="paginaAtual <= paginasAtuais[0]"
+    :disabled="!paginasAtuais || paginaAtual <= paginasAtuais[0]"
     @click="irParaPagina(paginaAtual - 1)"
   >
     ‹
@@ -119,7 +119,7 @@
   <!-- SETA DIREITA -->
   <button
     class="btn btn-sm btn-outline-secondary"
-    :disabled="paginaAtual >= paginasAtuais[paginasAtuais.length - 1]"
+    :disabled="!paginasAtuais || paginaAtual >= paginasAtuais[paginasAtuais.length - 1]"
     @click="irParaPagina(paginaAtual + 1)"
   >
     ›
@@ -390,22 +390,75 @@ export default {
 
     computed: {
 
-        paginasAtuais() {
-  // se NÃO for grupo, mantém como está hoje
-  const temGrupo = this.campeonato.jogos.some(j => j.grupo);
+      faseAtualCampeonato() {
+  if (!this.campeonato || !this.campeonato.jogos) return 'GRUPOS';
+  return this.campeonato.jogos.some(j => j.fase)
+    ? 'FASE'
+    : 'GRUPOS';
+},
 
-  if (!temGrupo) {
-    return Array.from({ length: this.totalRodadas }, (_, i) => i + 1);
+      temGrupo() {
+  if (!this.campeonato || !this.campeonato.jogos) return false;
+  return this.campeonato.jogos.some(j => j.grupo);
+},
+
+
+      grupoAtual() {
+  if (!this.campeonato) return '';
+  const grupos = this.campeonato.grupos?.map(g => g.nome) || [];
+  return grupos[this.paginaAtual - 1] || '';
+},
+
+
+        paginasAtuais() {
+  if (!this.campeonato || !Array.isArray(this.campeonato.jogos)) {
+    return [];
   }
 
-  // fase de grupos → páginas por grupo
-  const grupos = new Set(
-    this.campeonato.jogos
-      .filter(j => j.grupo)
-      .map(j => j.grupo)
-  );
+  const jogos = this.campeonato.jogos;
+  const tipo = this.campeonato.tipo;
 
-  return Array.from(grupos).sort(); // ['A','B','C'...]
+  // ===============================
+  // 🔹 GRUPOS
+  // ===============================
+  if (tipo === 'GRUPOS') {
+    const grupos = [...new Set(jogos.map(j => j.grupo))].filter(Boolean);
+
+    let totalPaginas = grupos.length;
+
+    // se já existe mata-mata, adiciona páginas das fases
+    const rodadasFase = [
+      ...new Set(jogos.filter(j => j.fase).map(j => j.rodada))
+    ];
+
+    totalPaginas += rodadasFase.length;
+
+    return Array.from({ length: totalPaginas }, (_, i) => i + 1);
+  }
+
+  // ===============================
+  // 🔹 PONTOS CORRIDOS (com ou sem mata-mata)
+  // ===============================
+  if (tipo === 'PONTOS_CORRIDOS') {
+    const rodadas = [
+      ...new Set(jogos.map(j => j.rodada))
+    ].sort((a, b) => a - b);
+
+    return rodadas;
+  }
+
+  // ===============================
+  // 🔹 MATA-MATA PURO
+  // ===============================
+  if (tipo === 'MATA_MATA') {
+    const rodadas = [
+      ...new Set(jogos.filter(j => j.fase).map(j => j.rodada))
+    ].sort((a, b) => a - b);
+
+    return rodadas;
+  }
+
+  return [];
 },
 
 
@@ -501,23 +554,52 @@ export default {
             if (!this.campeonato || !this.campeonato.jogos || this.campeonato.jogos.length === 0) return 1;
             return Math.max(...this.campeonato.jogos.map(j => j.rodada));
         },
+
         jogosDaRodada() {
   if (!this.campeonato) return [];
 
-  const temGrupo = this.campeonato.jogos.some(j => j.grupo);
+  const jogos = this.campeonato.jogos;
+  const tipo = this.campeonato.tipo;
 
-  // 🔹 FASE DE GRUPOS → página = GRUPO
-  if (temGrupo && typeof this.paginaAtual === 'string') {
-    return this.campeonato.jogos.filter(
-      j => j.grupo === this.paginaAtual
+  // ===============================
+  // 🔹 CAMPEONATO DE GRUPOS
+  // ===============================
+  if (tipo === 'GRUPOS') {
+    const grupos = [...new Set(jogos.map(j => j.grupo))].filter(Boolean);
+    const totalPaginasGrupo = grupos.length;
+
+    // ainda mostrando grupos
+    if (this.paginaAtual <= totalPaginasGrupo) {
+      const grupo = grupos[this.paginaAtual - 1];
+      return jogos.filter(j => j.grupo === grupo && !j.fase);
+    }
+
+    // depois dos grupos → mata-mata
+    return jogos.filter(
+      j => j.fase && j.rodada === this.paginaAtual
     );
   }
 
-  // 🔹 LIGA / MATA-MATA → página = RODADA
-  return this.campeonato.jogos.filter(
-    j => j.rodada === this.rodadaAtual
-  );
+  // ===============================
+  // 🔹 PONTOS CORRIDOS (com ou sem mata-mata)
+  // ===============================
+  if (tipo === 'PONTOS_CORRIDOS') {
+    return jogos.filter(j => j.rodada === this.paginaAtual);
+  }
+
+  // ===============================
+  // 🔹 MATA-MATA PURO
+  // ===============================
+  if (tipo === 'MATA_MATA') {
+    return jogos.filter(
+      j => j.fase && j.rodada === this.paginaAtual
+    );
+  }
+
+  return [];
 },
+
+
 
         nomeFaseAtual() {
             if (this.jogosDaRodada.length > 0) return this.jogosDaRodada[0].fase;
@@ -641,9 +723,6 @@ podeEncerrarLigaComMataMata() {
 
   return false;
 }
-
-
-
 
     },
     async mounted() {
@@ -1152,9 +1231,23 @@ if (existeConfrontoSemVencedor) {
                 if (conf.vencedorId == conf.timeB.id) return conf.timeB;
                 return null;
             }).filter(v => v !== null);
+
+            // 🔥 DESCOBRE A ÚLTIMA RODADA EXISTENTE
+const ultimaRodada = Math.max(
+  ...this.campeonato.jogos.map(j => j.rodada || 0)
+);
+
+// 🔥 A PRÓXIMA FASE TEM QUE SER UMA NOVA RODADA
+const novaRodada = ultimaRodada + 1;
+
             try {
                 this.carregando = true;
-                await DbService.avancarFaseMataMata(this.campeonato.id, vencedoresObj);
+                await DbService.avancarFaseMataMata(
+  this.campeonato.id,
+  vencedoresObj,
+  novaRodada // 🔥 AQUI ESTÁ A CORREÇÃO
+);
+
                 this.modalEncerramentoAberto = false;
                 alert("Nova fase gerada com sucesso!");
                 await this.carregarCampeonato();

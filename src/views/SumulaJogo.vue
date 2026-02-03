@@ -26,8 +26,12 @@
                 :estadio="timeFullA.estadio" :dataHora="jogo.dataHora" />
 
             <SumulaEventos v-if="abaAtiva === 'EVENTOS'" :timeA="jogo.timeA" :timeB="jogo.timeB" :elencoA="elencoA"
-                :elencoB="elencoB" :titularesA="jogo.titularesA" :titularesB="jogo.titularesB" :jogo="jogo"
-                v-model:ferramentaAtiva="ferramentaAtiva" @aplicar="aplicarAcao" />
+    :elencoB="elencoB" :titularesA="jogo.titularesA" :titularesB="jogo.titularesB" :jogo="jogo"
+    v-model:ferramentaAtiva="ferramentaAtiva"
+    @aplicar="aplicarAcao"
+    @simular="simularJogo"
+/>
+
 
             <SumulaTimeline v-if="abaAtiva === 'TIMELINE'" :eventos="jogo.eventos" :substituicoes="jogo.substituicoes"
                 :timeA="jogo.timeA" :timeB="jogo.timeB" @remover="removerItemTimeline" />
@@ -96,6 +100,7 @@ export default {
         this.idCampeonato = this.$route.params.idCampeonato;
         this.idJogo = this.$route.params.idJogo;
         await this.carregarDados();
+        
     },
     methods: {
         async carregarDados() {
@@ -250,7 +255,59 @@ export default {
             this.modalShareAberto = true;
         },
 
+        simularJogo() {
+    const jaTemGol = this.jogo.eventos.some(e => e.tipo === 'GOL');
+
+    const mensagem = jaTemGol
+        ? 'Essa partida já foi simulada. Deseja sobrescrever?'
+        : 'Deseja simular esta partida?';
+
+    if (!confirm(mensagem)) return;
+
+    // remove gols anteriores
+    this.jogo.eventos = this.jogo.eventos.filter(e => e.tipo !== 'GOL');
+
+    // jogadores válidos (exceto camisa 1)
+    const jogadoresA = this.elencoA.filter(j => j.numero !== 1);
+    const jogadoresB = this.elencoB.filter(j => j.numero !== 1);
+
+    // sorteio de gols (0 a 3)
+    const golsA = Math.floor(Math.random() * 4);
+    const golsB = Math.floor(Math.random() * 4);
+
+    // gols do time A
+    for (let i = 0; i < golsA; i++) {
+        const jogador = jogadoresA[Math.floor(Math.random() * jogadoresA.length)];
+
+        this.jogo.eventos.push({
+            id: Date.now() + i,
+            tipo: 'GOL',
+            timeId: this.jogo.timeA.id,
+            jogador: this.criarSnapshot(jogador),
+            jogadorId: jogador.id || jogador.numero,
+            minuto: null
+        });
+    }
+
+    // gols do time B
+    for (let i = 0; i < golsB; i++) {
+        const jogador = jogadoresB[Math.floor(Math.random() * jogadoresB.length)];
+
+        this.jogo.eventos.push({
+            id: Date.now() + 100 + i,
+            tipo: 'GOL',
+            timeId: this.jogo.timeB.id,
+            jogador: this.criarSnapshot(jogador),
+            jogadorId: jogador.id || jogador.numero,
+            minuto: null
+        });
+    }
+
+    this.salvarAlteracoes();
+},
+
         voltar() { this.$router.push(`/campeonato/${this.idCampeonato}`); }
+        
     }
 }
 </script>

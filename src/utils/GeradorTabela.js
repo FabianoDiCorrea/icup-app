@@ -186,7 +186,7 @@ export function gerarJogosMataMataDeGrupos(classificadosPorGrupo, turnos, rodada
     else if (totalTimes === 4) nomeNovaFase = 'Semifinal';
     else if (totalTimes === 2) nomeNovaFase = 'Final';
 
-    const novaRodadaInicial = rodadaAtualMax + 1;
+    const novaRodadaInicial = rodadaAtualMax;
     const novoConfrontoId = Date.now();
 
     return gerarJogosMataMata(timesCruzados, turnos, nomeNovaFase, novaRodadaInicial, novoConfrontoId);
@@ -233,7 +233,8 @@ export function gerarJogosMataMataSeedingGeral(todosOsTimesClassificados, turnos
     else if (totalTimes === 6 || totalTimes === 12) nomeNovaFase = `Playoffs (${totalTimes} times)`;
     else nomeNovaFase = `Fase de ${totalTimes}`;
 
-    const novaRodadaInicial = rodadaAtualMax + 1;
+    const novaRodadaInicial = rodadaAtualMax;
+
     const novoConfrontoId = Date.now();
 
     return gerarJogosMataMata(confrontos, turnos, nomeNovaFase, novaRodadaInicial, novoConfrontoId);
