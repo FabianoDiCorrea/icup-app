@@ -29,10 +29,10 @@
         </div>
 
         <!-- Conteúdo Principal: Campo Primeiro (100% largura) no Mobile/Tablet, Lado a Lado apenas em Desktop XL -->
-        <div class="d-flex flex-column flex-xl-row gap-2 gap-md-3 align-items-stretch">
+        <div class="d-flex flex-wrap flex-xl-nowrap gap-2 gap-md-3 align-items-stretch">
             
             <!-- Escalação Time A (Esquerda) - Abaixo do campo em Mobile/Tablet -->
-            <div class="escalacao-lateral escalacao-esquerda p-2 rounded bg-opacity-10 bg-info border border-info border-opacity-25 order-2 order-xl-1">
+            <div class="escalacao-lateral escalacao-esquerda p-2 rounded bg-opacity-10 bg-info border border-info border-opacity-25 order-2 order-xl-1 col-6 col-xl-auto">
                 <div class="esc-header border-bottom border-info border-opacity-50 pb-1 mb-2">
                     <span class="small fw-bold text-info">ESCALAÇÃO</span>
                 </div>
@@ -48,7 +48,7 @@
             </div>
 
             <!-- Campo de Futebol (Sempre 100% se não for Desktop XL) -->
-            <div class="campo-container position-relative overflow-hidden shadow flex-grow-1 order-1 order-xl-2">
+            <div class="campo-container position-relative overflow-hidden shadow flex-grow-1 order-1 order-xl-2 w-100">
                 <div class="campo-gramado">
                     <!-- Linhas do Campo -->
                 <div class="linha-meio"></div>
@@ -105,7 +105,7 @@
             </div>
 
             <!-- Escalação Time B (Direita) -->
-            <div class="escalacao-lateral escalacao-direita p-2 rounded bg-opacity-10 bg-danger border border-danger border-opacity-25 order-3">
+            <div class="escalacao-lateral escalacao-direita p-2 rounded bg-opacity-10 bg-danger border border-danger border-opacity-25 order-3 col-6 col-xl-auto">
                 <div class="esc-header border-bottom border-danger border-opacity-50 pb-1 mb-2">
                     <span class="small fw-bold text-danger">ESCALAÇÃO</span>
                 </div>
@@ -323,15 +323,17 @@ export default {
 
 .player-label {
     position: absolute;
-    bottom: 105%;
-    background-color: rgba(0, 0, 0, 0.8);
+    bottom: 110%;
+    background-color: rgba(0, 0, 0, 0.85);
     color: white;
-    font-size: clamp(7px, 0.7vw, 11px);
-    padding: 1px 4px;
-    border-radius: 2px;
+    font-size: clamp(8px, 0.8vw, 12px);
+    padding: 2px 5px;
+    border-radius: 3px;
     white-space: nowrap;
-    max-width: 120px;
+    max-width: 140px;
     z-index: 20;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    pointer-events: none;
 }
 
 .label-time-a {
@@ -413,15 +415,16 @@ export default {
 
 @media (max-width: 1199px) { /* Tablet e Celular Landscape */
     .escalacao-lateral {
-        flex: 1 1 auto;
+        flex: 1 1 48% !important; /* Aproximadamente metade para ficarem lado a lado */
         min-height: auto;
-        width: 100% !important;
         max-width: none !important;
     }
     .campo-container {
         width: 100% !important;
-        margin-bottom: 20px;
+        margin-bottom: 10px;
     }
+    .esc-num, .esc-nome { font-size: 0.75rem; }
+    .esc-header { font-size: 0.7rem; }
 }
 
 @media (max-width: 576px) {
@@ -432,10 +435,15 @@ export default {
     .h6 { font-size: 0.8rem; }
     .small { font-size: 0.6rem; }
     .player-label { 
-        font-size: 6px; 
-        top: -120% !important; 
-        padding: 0 2px; 
-        max-width: 50px;
+        font-size: 7px; 
+        bottom: 115% !important; 
+        padding: 1px 3px; 
+        max-width: 60px;
+        background-color: rgba(0, 0, 0, 0.9);
+        border-radius: 2px;
+    }
+    .label-time-a, .label-time-b {
+        border-width: 1px !important;
     }
     .esc-num, .esc-nome { font-size: 0.75rem; }
 }

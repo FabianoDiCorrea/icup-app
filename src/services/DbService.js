@@ -407,6 +407,44 @@ export default {
         campeonato.jogos = [...campeonato.jogos, ...novosJogos];
         await this.atualizarCampeonato(campeonato);
         return true;
+    },
+
+    async duplicarCampeonato(id) {
+        const lista = await this.getCampeonatos();
+        const campOriginal = lista.find(c => String(c.id) === String(id));
+
+        if (!campOriginal) throw new Error("Campeonato não encontrado");
+
+        // Clone profundo para não afetar o original
+        const novoCamp = JSON.parse(JSON.stringify(campOriginal));
+
+        // Ajustes para a cópia
+        novoCamp.id = Date.now();
+        novoCamp.nome = `${novoCamp.nome} CÓPIA`;
+        novoCamp.dataCriacao = new Date().toISOString();
+        novoCamp.status = 'EM_ANDAMENTO'; // Reinicia o status
+
+        // Atualiza os IDs nos jogos também (apenas segurança)
+        if (novoCamp.jogos) {
+            novoCamp.jogos = novoCamp.jogos.map(j => ({
+                ...j,
+                id: Math.random().toString(36).substr(2, 9), // Novos IDs internos
+                campeonatoId: novoCamp.id
+            }));
+        }
+
+        lista.push(novoCamp);
+        await localforage.setItem(KEYS.CAMPEONATOS, lista);
+        return novoCamp.id;
+    },
+
+    /**
+     * Verifica se o banco está vazio (útil para detectar mudança de porto/origem)
+     */
+    async isBancoVazio() {
+        const times = await this.getTimes();
+        const camps = await this.getCampeonatos();
+        return times.length === 0 && camps.length === 0;
     }
 
 

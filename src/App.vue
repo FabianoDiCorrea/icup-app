@@ -80,6 +80,21 @@
     </nav>
 
     <main class="py-4">
+      <!-- Alerta de Banco Vazio (Possível mudança de porta) -->
+      <div v-if="exibirAvisoPorta" class="container mb-3">
+        <div class="alert alert-warning border-warning shadow-sm d-flex justify-content-between align-items-center">
+          <div>
+            <h5 class="alert-heading fw-bold mb-1">⚠️ Seus dados sumiram?</h5>
+            <p class="mb-0 small">
+              Se você costumava rodar o app em outra porta (ex: 8080), seus dados continuam lá! 
+              O navegador separa o armazenamento por porta. 
+              <strong>Dica:</strong> Vá em Configurações para exportar/importar seu backup.
+            </p>
+          </div>
+          <button type="button" class="btn-close" @click="exibirAvisoPorta = false"></button>
+        </div>
+      </div>
+
       <router-view />
 
     </main>
@@ -98,13 +113,23 @@ import DbService from './services/DbService.js';
 export default {
   data() {
     return {
-      menuAberto: false // Controla o estado do menu no mobile
+      menuAberto: false, // Controla o estado do menu no mobile
+      exibirAvisoPorta: false
     }
   },
   async mounted() {
     document.title = 'iCup'
     // Tenta ativar a persistência silenciosamente ao iniciar
     await DbService.solicitarPersistencia();
+
+    // Verifica se o banco está vazio para disparar o alerta de "Dados Sumiram?"
+    const vazio = await DbService.isBancoVazio();
+    if (vazio) {
+      // Pequeno delay para não assustar o usuário na primeira carga
+      setTimeout(() => {
+        this.exibirAvisoPorta = true;
+      }, 1500);
+    }
 
     // (Opcional) Loga o uso de espaço no console para você monitorar
     await DbService.verificarEspaco();

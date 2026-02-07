@@ -1,6 +1,6 @@
 {
   "name": "icup",
-  "version": "1.0.2-estavel",
+  "version": "1.0.3-estavel",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",

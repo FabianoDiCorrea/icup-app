@@ -45,23 +45,24 @@
               </BTd>
 
               <BTd class="text-end">
-  <BButton 
-    size="sm" 
-    variant="primary" 
-    @click="irParaDetalhes(camp.id)"
-  >
-    Gerenciar ➜
-  </BButton>
+                <div class="d-flex justify-content-end gap-1 flex-wrap">
+                  <BButton size="sm" variant="primary" @click="irParaDetalhes(camp.id)" title="Gerenciar Jogo">
+                    Gerenciar
+                  </BButton>
+                  
+                  <BButton size="sm" variant="warning" @click="editarCampeonato(camp.id)" title="Editar Configurações">
+                    ✏️
+                  </BButton>
 
-  <BButton
-    size="sm"
-    variant="danger"
-    class="ms-2"
-    @click="excluirCampeonato(camp.id)"
-  >
-    Excluir
-  </BButton>
-</BTd>
+                  <BButton size="sm" variant="info" @click="duplicarCampeonato(camp.id)" title="Duplicar (Criar Cópia)">
+                    👯
+                  </BButton>
+
+                  <BButton size="sm" variant="danger" @click="excluirCampeonato(camp.id)" title="Excluir Definitivamente">
+                    Excluir
+                  </BButton>
+                </div>
+              </BTd>
 
             </BTr>
           </BTbody>
@@ -93,56 +94,78 @@ export default {
     await this.carregarDados();
   },
   methods: {
-  async carregarDados() {
-    try {
-      this.campeonatos = await DbService.getCampeonatos();
-      this.campeonatos.sort((a, b) => b.id - a.id);
-    } catch (error) {
-      console.error("Erro ao listar campeonatos:", error);
-    } finally {
-      this.carregando = false;
-    }
-  },
+    async carregarDados() {
+      try {
+        this.campeonatos = await DbService.getCampeonatos();
+        this.campeonatos.sort((a, b) => b.id - a.id);
+      } catch (error) {
+        console.error("Erro ao listar campeonatos:", error);
+      } finally {
+        this.carregando = false;
+      }
+    },
 
-  irParaDetalhes(id) {
-    this.$router.push(`/campeonato/${id}`);
-  },
+    irParaDetalhes(id) {
+      this.$router.push(`/campeonato/${id}`);
+    },
 
-  formatarData(dataIso) {
-    if (!dataIso) return '-';
-    return new Date(dataIso).toLocaleDateString('pt-BR');
-  },
+    formatarData(dataIso) {
+      if (!dataIso) return '-';
+      return new Date(dataIso).toLocaleDateString('pt-BR');
+    },
 
-  formatarStatus(status) {
-    if (status === 'EM_ANDAMENTO') return 'Em Andamento';
-    if (status === 'FINALIZADO') return 'Finalizado';
-    return status;
-  },
+    formatarStatus(status) {
+      if (status === 'EM_ANDAMENTO') return 'Em Andamento';
+      if (status === 'FINALIZADO') return 'Finalizado';
+      return status;
+    },
 
-  getBadgeVariant(status) {
-    if (status === 'EM_ANDAMENTO') return 'success';
-    if (status === 'FINALIZADO') return 'secondary';
-    return 'primary';
-  },
+    getBadgeVariant(status) {
+      if (status === 'EM_ANDAMENTO') return 'success';
+      if (status === 'FINALIZADO') return 'secondary';
+      return 'primary';
+    },
 
-  async excluirCampeonato(id) {
-    const ok = confirm(
-      "⚠️ Tem certeza que deseja EXCLUIR este campeonato?\n\n" +
-      "Essa ação não pode ser desfeita."
-    );
+    async excluirCampeonato(id) {
+      const ok = confirm(
+        "⚠️ Tem certeza que deseja EXCLUIR este campeonato?\n\n" +
+        "Essa ação não pode ser desfeita."
+      );
 
-    if (!ok) return;
+      if (!ok) return;
 
-    try {
-      await DbService.excluirCampeonato(id);
-      alert("Campeonato excluído com sucesso!");
-      await this.carregarDados();
-    } catch (error) {
-      console.error(error);
-      alert("Erro ao excluir campeonato.");
+      try {
+        await DbService.excluirCampeonato(id);
+        alert("Campeonato excluído com sucesso!");
+        await this.carregarDados();
+      } catch (error) {
+        console.error(error);
+        alert("Erro ao excluir campeonato.");
+      }
+    },
+
+    async duplicarCampeonato(id) {
+      if (!confirm("Deseja criar uma cópia idêntica deste campeonato?")) return;
+      
+      try {
+        this.carregando = true;
+        await DbService.duplicarCampeonato(id);
+        alert("Campeonato duplicado com sucesso! Procure pelo nome com 'CÓPIA'.");
+        await this.carregarDados();
+      } catch (error) {
+        console.error(error);
+        alert("Erro ao duplicar campeonato.");
+      } finally {
+        this.carregando = false;
+      }
+    },
+
+    editarCampeonato(id) {
+      this.$router.push(`/editar-campeonato/${id}`);
     }
   }
 }
-
-}
 </script>
+
+<style scoped>
+</style>

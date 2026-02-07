@@ -32,10 +32,10 @@ const routes = [
     component: CadastroTime
   },
   {
-  path: '/tecnicos',
-  name: 'Tecnicos',
-  component: () => import('../views/Tecnicos.vue')
-},
+    path: '/tecnicos',
+    name: 'Tecnicos',
+    component: () => import('../views/Tecnicos.vue')
+  },
   {
     path: '/lista-clubes',
     name: 'ListaClubes',
@@ -60,6 +60,11 @@ const routes = [
     path: '/campeonato/:id',
     name: 'DetalhesCampeonato',
     component: DetalhesCampeonato
+  },
+  {
+    path: '/editar-campeonato/:id',
+    name: 'EditarCampeonato',
+    component: CadastroCampeonato
   },
   {
     path: '/campeonato/:id/classificacao',

@@ -6,17 +6,12 @@
                 <span v-else class="text-primary fw-bold">Modo Ativo: APLICAR {{ ferramentaAtiva }}</span>
             </p>
 
-            <div class="d-flex justify-content-center gap-2">
-                <BButton :variant="ferramentaAtiva === 'GOL' ? 'success' : 'outline-success'" @click="alternar('GOL')">⚽
-                    Gol</BButton>
-                <BButton :variant="ferramentaAtiva === 'AZUL' ? 'info' : 'outline-info'"
-                    @click="alternar('AZUL')">🟦 Azul</BButton>
-                <BButton :variant="ferramentaAtiva === 'AMARELO' ? 'warning' : 'outline-warning'"
-                    @click="alternar('AMARELO')">🟨 Amarelo</BButton>
-                <BButton :variant="ferramentaAtiva === 'VERMELHO' ? 'danger' : 'outline-danger'"
-                    @click="alternar('VERMELHO')">🟥 Vermelho</BButton>
-                <BButton :variant="ferramentaAtiva === 'CRAQUE' ? 'primary' : 'outline-primary'"
-                    @click="alternar('CRAQUE')">⭐ Craque</BButton>
+            <div class="d-flex justify-content-center gap-1 gap-md-2 flex-wrap px-1">
+                <BButton size="sm" :variant="ferramentaAtiva === 'GOL' ? 'success' : 'outline-success'" class="btn-acao" @click="alternar('GOL')">⚽ Gol</BButton>
+                <BButton size="sm" :variant="ferramentaAtiva === 'AZUL' ? 'info' : 'outline-info'" class="btn-acao" @click="alternar('AZUL')">🟦 Azul</BButton>
+                <BButton size="sm" :variant="ferramentaAtiva === 'AMARELO' ? 'warning' : 'outline-warning'" class="btn-acao" @click="alternar('AMARELO')">🟨 Amarelo</BButton>
+                <BButton size="sm" :variant="ferramentaAtiva === 'VERMELHO' ? 'danger' : 'outline-danger'" class="btn-acao" @click="alternar('VERMELHO')">🟥 Vermelho</BButton>
+                <BButton size="sm" :variant="ferramentaAtiva === 'CRAQUE' ? 'primary' : 'outline-primary'" class="btn-acao" @click="alternar('CRAQUE')">⭐ Craque</BButton>
                 <BButton
                     size="sm"
                     variant="outline-light"
@@ -29,10 +24,9 @@
                 <BButton v-if="jogo.fase && !jogo.grupo && golsA === golsB"
                     size="sm"
                     variant="outline-warning"
-                    class="ms-1"
                     @click="$emit('simularPenaltis')"
                 >
-                    ⚽ SIMULAR PÊNALTIS?
+                    ⚽ PÊNALTIS
                 </BButton>
 
 

@@ -1,6 +1,6 @@
 <template>
   <div class="container mt-4 mb-5">
-    <BCard title="Novo Campeonato" class="shadow-sm border-secondary bg-dark text-white">
+    <BCard :title="idEdicao ? 'Editar Campeonato' : 'Novo Campeonato'" class="shadow-sm border-secondary bg-dark text-white">
       <BForm @submit.prevent="salvarCampeonato">
 
         <h5 class="text-primary border-bottom border-secondary pb-2 mb-3">1. Configurações</h5>
@@ -542,6 +542,7 @@ export default {
       previewJogos: [],
       previewGrupos: [],
       tecnicos: [],
+      idEdicao: null
     }
   },
     computed: {
@@ -615,12 +616,15 @@ export default {
 
   },
   async mounted() {
-
-    
     await this.carregarTimes();
     const salvos = localStorage.getItem("tecnicos");
     this.tecnicos = salvos ? JSON.parse(salvos) : [];
 
+    // Lógica de Edição
+    if (this.$route.params.id) {
+      this.idEdicao = this.$route.params.id;
+      await this.carregarCampeonatoParticipante();
+    }
   },
   methods: {
 
@@ -976,7 +980,7 @@ jogos:
     : this.previewJogos,
 
 
-  times: this.timesSelecionadosObj.map(t => ({
+  timesParticipantes: this.timesSelecionadosObj.map(t => ({
     ...t,
     tecnico: t.tecnico || '',
     pais: t.pais || null
@@ -991,14 +995,82 @@ jogos:
 
       try {
         this.carregando = true;
-        await DbService.adicionarCampeonato(JSON.parse(JSON.stringify(dados)));
-        alert(`Campeonato "${this.campeonato.nome}" criado com sucesso!`);
-        this.idsSelecionados = [];
-        this.campeonato.nome = '';
-        this.resetarConfiguracoesEspecificas();
+        
+        const payload = JSON.parse(JSON.stringify(dados));
+        
+        if (this.idEdicao) {
+          payload.id = Number(this.idEdicao);
+          await DbService.atualizarCampeonato(payload);
+          alert(`Campeonato "${this.campeonato.nome}" atualizado com sucesso!`);
+          this.$router.push('/lista-campeonatos');
+        } else {
+          await DbService.adicionarCampeonato(payload);
+          alert(`Campeonato "${this.campeonato.nome}" criado com sucesso!`);
+          this.idsSelecionados = [];
+          this.campeonato.nome = '';
+          this.resetarConfiguracoesEspecificas();
+        }
       } catch (error) {
         console.error(error);
-        alert("Erro ao criar campeonato.");
+        alert("Erro ao salvar campeonato.");
+      } finally {
+        this.carregando = false;
+      }
+    },
+
+    async carregarCampeonatoParticipante() {
+      try {
+        this.carregando = true;
+        const camp = await DbService.getCampeonatoById(this.idEdicao);
+        if (!camp) {
+          alert("Campeonato não encontrado!");
+          this.$router.push('/lista-campeonatos');
+          return;
+        }
+
+        // Mapear dados basicos
+        this.campeonato.nome = camp.nome;
+        this.campeonato.tipo = camp.tipo;
+        this.campeonato.turnos = camp.turnos;
+        this.campeonato.tipoClassificacao = camp.tipoClassificacao || 'AUTOMATICA';
+        this.campeonato.modoDefinicao = camp.modoDefinicao || 'AUTOMATICO';
+        this.campeonato.adicionarNacionalidade = camp.adicionarNacionalidade === true;
+        this.campeonato.classificadosParaMataMata = camp.classificadosParaMataMata || 4;
+        this.campeonato.ativarMataMataPontosCorridos = !!camp.classificadosParaMataMata;
+
+        // Mapear times selecionados (usa timesParticipantes que é a chave correta do banco)
+        const timesDocamp = camp.timesParticipantes || camp.times || [];
+        if (timesDocamp.length > 0) {
+          this.idsSelecionados = timesDocamp.map(t => t.id);
+          // Restaurar técnicos nos times originais (para o input select)
+          timesDocamp.forEach(tSalvo => {
+            const timeNaLista = this.todosOsTimes.find(t => t.id === tSalvo.id);
+            if (timeNaLista) {
+              timeNaLista.tecnico = tSalvo.tecnico || '';
+            }
+          });
+        }
+
+        // Mapear grupos
+        if (camp.tipo === 'GRUPOS') {
+          this.configGrupos.qtdGrupos = camp.grupos?.length || 2;
+          this.configGrupos.classificadosPorGrupo = camp.classificadosPorGrupo || 2;
+          this.configGrupos.usarRepescagem = camp.usarRepescagem || false;
+          this.configGrupos.modoKnockout = camp.modoKnockout || 'PADRAO';
+          this.previewGrupos = camp.grupos || [];
+          
+          if (camp.modoDefinicao === 'MANUAL') {
+             this.configGrupos.gruposManuais = (camp.grupos || []).map(g => ({ times: [...g.times] }));
+          }
+        }
+
+        // Mapear jogos preview (exceto pontos corridos que gera no save)
+        if (camp.tipo !== 'PONTOS_CORRIDOS') {
+          this.previewJogos = camp.jogos || [];
+        }
+
+      } catch (error) {
+        console.error("Erro ao carregar para edição:", error);
       } finally {
         this.carregando = false;
       }

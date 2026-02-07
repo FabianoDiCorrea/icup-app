@@ -76,8 +76,8 @@
                 </div>
                 
                 <!-- CRONÔMETRO (Barra no Mobile/Tablet Landscape, Lateral no Desktop LG+) -->
-                <div class="crono-wrapper order-2 shadow-lg border-top border-lg-top-0 border-lg-start border-secondary">
-                    <div class="p-2 p-md-3 bg-black h-100 d-flex flex-row flex-lg-column align-items-center justify-content-between justify-content-lg-center gap-2">
+                <div class="crono-wrapper order-2 shadow-lg border-top border-lg-top-0 border-lg-start border-secondary bg-black">
+                    <div class="p-2 p-md-3 h-100 d-flex flex-column flex-md-row flex-lg-column align-items-center justify-content-center justify-content-md-between justify-content-lg-center gap-2 gap-md-3">
                         
                         <!-- Tempo -->
                         <div class="fw-bold text-monospace tempo-display" 
@@ -174,13 +174,22 @@ export default {
   right: -10px;
   box-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
-.nav-link { cursor: pointer; font-size:0.7rem }
-.star-icon {
-    transition: transform 0.1s;
-    user-select: none;
+.nav-link { 
+    cursor: pointer; 
+    font-size: 0.65rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    height: 100%;
+    min-height: 48px;
+    padding: 5px 2px;
+    text-align: center;
+    line-height: 1.1;
 }
-.star-icon:hover {
-    transform: scale(1.3);
+.nav-tabs .nav-item {
+    display: flex;
 }
 .cursor-pointer { cursor: pointer; }
 @media (min-width: 768px) {
@@ -196,8 +205,10 @@ export default {
 }
 
 .tempo-display {
-    font-size: 2.2rem;
+    font-size: 5rem;
     line-height: 1;
+    text-align: center;
+    width: 100%;
 }
 
 .main-btn {
@@ -232,10 +243,20 @@ export default {
 /* Ajustes finos de botões no mobile-tablet */
 @media (max-width: 991px) {
     .btn-crono-group {
-        max-width: 240px;
+        max-width: 100%;
     }
     .crono-wrapper {
         border-top: 2px solid #444;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+     .tempo-display {
+        font-size: 3rem;
+        width: auto;
+    }
+    .btn-crono-group {
+        max-width: 240px;
     }
 }
 </style>

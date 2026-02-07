@@ -8,6 +8,51 @@
       <BButton variant="outline-secondary" @click="$router.push('/')">Voltar</BButton>
     </div>
 
+    <!-- Configuração da API de Futebol -->
+    <BRow class="mb-4">
+      <BCol md="12">
+        <BCard title="⚽ API de Futebol (Atualização Automática de Elencos)" class="shadow-sm border-success">
+          <p class="text-muted">
+            Configure sua chave da <strong>API-Football</strong> para buscar automaticamente os 11 titulares de qualquer time ao cadastrar/editar.
+          </p>
+          
+          <div class="alert alert-info small">
+            <strong>🎁 Plano Gratuito:</strong> 100 buscas por dia<br>
+            <strong>🔗 Site:</strong> <a href="https://www.api-football.com/" target="_blank" class="text-decoration-none">api-football.com</a><br>
+            <strong>📚 Passos:</strong>
+            <ol class="mb-0 mt-2">
+              <li>Criar conta gratuita no site</li>
+              <li>Acessar "Dashboard" e copiar sua chave API</li>
+              <li>Colar a chave abaixo e salvar</li>
+            </ol>
+          </div>
+
+          <BFormGroup label="Chave da API:" label-for="api-key">
+            <BInputGroup>
+              <BFormInput 
+                id="api-key" 
+                v-model="apiKey" 
+                :type="mostrarChave ? 'text' : 'password'"
+                placeholder="Cole sua chave API aqui..."
+              />
+              <template #append>
+                <BButton variant="outline-secondary" @click="mostrarChave = !mostrarChave">
+                  {{ mostrarChave ? '👁️' : '🚫' }}
+                </BButton>
+                <BButton variant="success" @click="salvarChaveAPI">
+                  💾 Salvar
+                </BButton>
+              </template>
+            </BInputGroup>
+          </BFormGroup>
+
+          <div v-if="apiConfigurada" class="alert alert-success small">
+            ✅ API configurada! Você pode usar o botão "🔄 Atualizar Elenco da API" ao cadastrar/editar times.
+          </div>
+        </BCard>
+      </BCol>
+    </BRow>
+
     <BRow>
       <BCol md="6" class="mb-4">
         <BCard title="📤 Exportar Dados" class="h-100 shadow-sm border-primary">
@@ -97,20 +142,28 @@
 
 <script>
 import DbService from '../services/DbService.js';
-import { BCard, BButton, BRow, BCol } from 'bootstrap-vue-next';
+import FootballApiService from '../services/FootballApiService.js';
+import { BCard, BButton, BRow, BCol, BFormGroup, BFormInput, BInputGroup } from 'bootstrap-vue-next';
 
 export default {
   name: 'Configuracoes',
   components: {
-    BCard, BButton, BRow, BCol
+    BCard, BButton, BRow, BCol, BFormGroup, BFormInput, BInputGroup
   },
   data() {
     return {
       processandoExport: false,
       processandoImport: false,
       arquivoSelecionado: null,
-      modoImportacao: 'MESCLAR' // Padrão seguro
+      modoImportacao: 'MESCLAR', // Padrão seguro
+      apiKey: '',
+      mostrarChave: false,
+      apiConfigurada: false
     }
+  },
+  mounted() {
+    this.apiKey = FootballApiService.getApiKey();
+    this.apiConfigurada = FootballApiService.isConfigured();
   },
   methods: {
     // --- EXPORTAR ---
@@ -191,6 +244,17 @@ export default {
         await DbService.resetarBanco();
         window.location.reload();
       }
+    },
+
+    salvarChaveAPI() {
+      if (!this.apiKey || this.apiKey.trim() === '') {
+        alert("⚠️ Digite uma chave válida!");
+        return;
+      }
+
+      FootballApiService.setApiKey(this.apiKey.trim());
+      this.apiConfigurada = true;
+      alert("✅ Chave API salva com sucesso!\n\nVocê já pode usar o botão '🔄 Atualizar Elenco da API' ao cadastrar/editar times.");
     }
   }
 }

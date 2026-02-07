@@ -141,7 +141,7 @@
                         <BRow class="w-100 m-0 align-items-center">
                             <BCol cols="4" md="4" class="text-end px-1">
                                 <div class="d-flex align-items-center justify-content-end gap-2">
-                                  <div class="d-flex align-items-center gap-2 text-truncate">
+                                  <div class="d-none d-md-flex align-items-center gap-2 text-truncate">
 
   <span
     v-if="getTimeCompleto(jogo.timeA)?.tecnico"
@@ -169,10 +169,21 @@
 
 </div>
 
+<!-- VISTA MOBILE (Portfólio) -->
+<div class="d-flex d-md-none align-items-center gap-1 text-truncate" style="font-size: 0.8rem;">
+  <span v-if="getTimeCompleto(jogo.timeA)?.tecnico" class="fw-bold text-success">
+    {{ getTimeCompleto(jogo.timeA).tecnico.substring(0,3).toUpperCase() }}
+  </span>
+  <span v-if="campeonato.adicionarNacionalidade && getTimeCompleto(jogo.timeA)?.pais" class="text-info">
+    {{ getTimeCompleto(jogo.timeA).pais.substring(0,3).toUpperCase() }}
+  </span>
+  <img :src="getTimeCompleto(jogo.timeA).escudo" style="width: 20px; height: 20px; object-fit: contain" onerror="this.style.display='none'" />
+  <span class="fw-bold">{{ getSigla(jogo.timeA) }}</span>
+</div>
 
 
 
-                                    <span class="fw-bold d-md-none">{{ getSigla(jogo.timeA) }}</span>
+
                                 
                                 </div>
                                 <div class="mt-1 text-muted small lh-1 text-truncate" style="font-size: 0.7rem;">
@@ -256,7 +267,7 @@
                             <BCol cols="4" md="4" class="text-start px-1">
                                 <div class="d-flex align-items-center justify-content-start gap-2">
                                     
-                                    <div class="d-flex align-items-center gap-2 text-truncate">
+                                    <div class="d-none d-md-flex align-items-center gap-2 text-truncate">
 
   <span class="fw-bold">
     {{ getTimeCompleto(jogo.timeB).nome }}
@@ -284,8 +295,19 @@
 
 </div>
 
+<!-- VISTA MOBILE (Portfólio) - Espelhada -->
+<div class="d-flex d-md-none align-items-center gap-1 text-truncate" style="font-size: 0.8rem;">
+  <span class="fw-bold">{{ getSigla(jogo.timeB) }}</span>
+  <img :src="getTimeCompleto(jogo.timeB).escudo" style="width: 20px; height: 20px; object-fit: contain" onerror="this.style.display='none'" />
+  <span v-if="campeonato.adicionarNacionalidade && getTimeCompleto(jogo.timeB)?.pais" class="text-info">
+    {{ getTimeCompleto(jogo.timeB).pais.substring(0,3).toUpperCase() }}
+  </span>
+  <span v-if="getTimeCompleto(jogo.timeB)?.tecnico" class="fw-bold text-success">
+    {{ getTimeCompleto(jogo.timeB).tecnico.substring(0,3).toUpperCase() }}
+  </span>
+</div>
 
-                                    <span class="fw-bold d-md-none">{{ getSigla(jogo.timeB) }}</span>
+
                                 </div>
                                 <div class="mt-1 text-muted small lh-1 text-truncate" style="font-size: 0.7rem;">
                                     <span v-for="(autor, idx) in getAutoresGols(jogo, jogo.timeB.id)" :key="idx"
