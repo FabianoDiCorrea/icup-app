@@ -10,6 +10,7 @@
         </div>
 
         <div v-else>
+            
             <SumulaHeader 
                 :rodada="jogo.rodada" 
                 :timeA="jogo.timeA" :timeB="jogo.timeB" 
@@ -18,7 +19,17 @@
                 v-model:dataHora="jogo.dataHora"
                 v-model:abaAtiva="abaAtiva"
                 v-model:nota="jogo.nota" 
+                
+                :tempoFormatado="tempoFormatado"
+                :statusCronometro="statusCronometro"
+                :tempoRestante="tempoRestante"
+
                 @voltar="voltar" @salvar="salvarAlteracoes" @sharear="gerarShare"
+                @iniciar="iniciarCronometro"
+                @pausar="pararCronometro"
+                @resetar="resetarCronometro"
+                @editarTempo="abrirEditorTempo"
+                @ajustarSegundos="ajustarSegundos"
             />
            
             <SocialShareModal v-model="modalShareAberto" :timeA="timeFullA" :timeB="timeFullB" :golsA="golsA"
@@ -83,10 +94,22 @@ export default {
             ferramentaAtiva: null,
             idCampeonato: '', idJogo: '',
             subTempA: { saiId: null, entraId: null },
-            subTempB: { saiId: null, entraId: null }
+            subTempB: { saiId: null, entraId: null },
+            
+            // CRONÔMETRO
+            duracaoPartida: 10, // minutos padrão
+            tempoRestante: 600, // segundos
+            statusCronometro: 'PARADO', // PARADO, RODANDO, ENCERRADO
+            cronometroId: null,
+            apitoTocando: false
         }
     },
     computed: {
+        tempoFormatado() {
+            const m = Math.floor(this.tempoRestante / 60);
+            const s = this.tempoRestante % 60;
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        },
         golsA() {
             if (!this.jogo?.eventos) return 0;
             return this.jogo.eventos.filter(e => e.tipo === 'GOL' && e.timeId === this.jogo.timeA.id).length;
@@ -125,6 +148,47 @@ export default {
                 // Inicializa a nota se não existir
                 jogoEncontrado.nota = jogoEncontrado.nota || 0;
 
+                // INICIALIZAÇÃO E RECUPERAÇÃO DO CRONÔMETRO
+                jogoEncontrado.cronometro = jogoEncontrado.cronometro || {
+                    duracaoPartida: 10,
+                    tempoRestanteSnapshot: 600, // 10 min em segundos
+                    ultimoUpdate: null,
+                    status: 'PARADO' // PARADO, RODANDO, ENCERRADO
+                };
+
+                // Sync local state
+                this.duracaoPartida = jogoEncontrado.cronometro.duracaoPartida;
+                this.statusCronometro = jogoEncontrado.cronometro.status;
+                
+                if (this.statusCronometro === 'RODANDO' && jogoEncontrado.cronometro.ultimoUpdate) {
+                    const agora = Date.now();
+                    const decorridoSegundos = Math.floor((agora - jogoEncontrado.cronometro.ultimoUpdate) / 1000);
+                    const novoTempo = jogoEncontrado.cronometro.tempoRestanteSnapshot - decorridoSegundos;
+
+                    if (novoTempo <= 0) {
+                        this.tempoRestante = 0;
+                        this.statusCronometro = 'ENCERRADO';
+                        this.pararCronometro(false); // false = não salvar cronometro state simples
+                        
+                        // Atualiza objeto
+                        jogoEncontrado.cronometro.status = 'ENCERRADO';
+                        jogoEncontrado.cronometro.tempoRestanteSnapshot = 0;
+                        jogoEncontrado.cronometro.ultimoUpdate = null;
+                        
+                        // Garante sincronia antes do apito
+                        this.jogo = jogoEncontrado; 
+                        this.salvarAlteracoes(true); // FINALIZA POIS O TEMPO ACABOU NO BACKGROUND
+
+                        this.tocarApitoFinal();
+                    } else {
+                        this.tempoRestante = novoTempo;
+                        // Retoma o loop visual (sem resetar o snapshot save)
+                        this.retomarCronometroVisual(); 
+                    }
+                } else {
+                    this.tempoRestante = jogoEncontrado.cronometro.tempoRestanteSnapshot;
+                }
+
                 const timeGlobalA = await DbService.getTimeById(jogoEncontrado.timeA.id);
                 const timeGlobalB = await DbService.getTimeById(jogoEncontrado.timeB.id);
 
@@ -158,10 +222,25 @@ export default {
         criarSnapshot(j) { return { id: this.getId(j), numero: j.numero, nome: j.nome }; },
 
         // --- Lógica Delegada ---
-        async salvarAlteracoes() {
-            this.jogo.golsA = this.golsA;
-            this.jogo.golsB = this.golsB;
-            this.jogo.finalizado = true;
+        async salvarAlteracoes(finalizar = true) {
+            // Se vier de evento (click), 'finalizar' pode ser um objeto Event, então forçamos true.
+            // Se for chamada interna passando booleano, respeita.
+            const deveFinalizar = (typeof finalizar === 'boolean') ? finalizar : true;
+
+            // Se não finalizou e gols forem 0, salva null para não exibir 0x0
+            // Se finalizou, salva 0 mesmo (0x0)
+            const gA = this.golsA;
+            const gB = this.golsB;
+
+            this.jogo.golsA = (gA === 0 && !this.jogo.finalizado && !deveFinalizar) ? null : gA;
+            this.jogo.golsB = (gB === 0 && !this.jogo.finalizado && !deveFinalizar) ? null : gB;
+            
+            if (deveFinalizar) {
+                this.jogo.finalizado = true;
+            }
+            // Nota: Se deveFinalizar for false, não alteramos o status 'finalizado'. 
+            // Ele permanece como estava (pode já estar finalizado ou não).
+
             try {
                 await DbService.atualizarJogo(this.idCampeonato, JSON.parse(JSON.stringify(this.jogo)));
             } catch (error) { console.error(error); }
@@ -169,7 +248,7 @@ export default {
 
         selecionarUniforme(cor, lado) {
             if (lado === 'A') this.jogo.uniformeA = cor; else this.jogo.uniformeB = cor;
-            this.salvarAlteracoes();
+            this.salvarAlteracoes(false);
         },
 
         async aplicarAcao(jogador, timeId) {
@@ -218,17 +297,17 @@ export default {
             const index = lista.findIndex(t => t?.id == jId);
             if (index !== -1) lista.splice(index, 1);
             else lista.push(this.criarSnapshot(jogador));
-            this.salvarAlteracoes();
+            this.salvarAlteracoes(false);
         },
         selecionarTodos(lado) {
             const elenco = lado === 'A' ? this.elencoA : this.elencoB;
             const novos = elenco.map(j => this.criarSnapshot(j));
             if (lado === 'A') this.jogo.titularesA = novos; else this.jogo.titularesB = novos;
-            this.salvarAlteracoes();
+            this.salvarAlteracoes(false);
         },
         selecionarNenhum(lado) {
             if (lado === 'A') this.jogo.titularesA = []; else this.jogo.titularesB = [];
-            this.salvarAlteracoes();
+            this.salvarAlteracoes(false);
         },
 
         async realizarSubstituicao(lado) {
@@ -303,11 +382,187 @@ export default {
         });
     }
 
-    this.salvarAlteracoes();
+    this.salvarAlteracoes(true);
 },
 
-        voltar() { this.$router.push(`/campeonato/${this.idCampeonato}`); }
+        voltar() { this.$router.push(`/campeonato/${this.idCampeonato}`); },
         
+        // --- LÓGICA DO CRONÔMETRO ---
+        // --- LÓGICA DO CRONÔMETRO ---
+        async salvarEstadoCronometro() {
+            if (!this.jogo) return;
+            this.jogo.cronometro = {
+                duracaoPartida: this.duracaoPartida,
+                tempoRestanteSnapshot: this.tempoRestante, // Snapshot atual
+                ultimoUpdate: this.statusCronometro === 'RODANDO' ? Date.now() : null,
+                status: this.statusCronometro
+            };
+            // Salvar estado cronometro NÃO DEVE finalizar a partida
+            await this.salvarAlteracoes(false); 
+        },
+
+        iniciarCronometro() {
+            if (this.tempoRestante > 0) {
+                this.statusCronometro = 'RODANDO';
+                // Salva estado COM timestamp atual antes de iniciar visualmente
+                // Isso garante que o delta comece a contar a partir de AGORA
+                this.salvarEstadoCronometro();
+                this.retomarCronometroVisual();
+            }
+        },
+
+        retomarCronometroVisual() {
+            // Apenas inicia o intervalo visual (não salva no DB repetidamente)
+            if (this.cronometroId) clearInterval(this.cronometroId);
+            
+            this.cronometroId = setInterval(() => {
+                if (this.tempoRestante > 0) {
+                    this.tempoRestante--;
+                } else {
+                    this.statusCronometro = 'ENCERRADO';
+                    this.pararCronometro(false); 
+                    
+                    // Atualiza explicitamente o objeto jogo antes de salvar
+                    this.jogo.cronometro.status = 'ENCERRADO';
+                    this.jogo.cronometro.tempoRestanteSnapshot = 0;
+                    this.jogo.cronometro.ultimoUpdate = null;
+
+                    this.salvarAlteracoes(true); // Finaliza partida e persiste
+                    this.tocarApitoFinal();
+                }
+            }, 1000);
+        },
+
+        pararCronometro(salvar = true) {
+            clearInterval(this.cronometroId);
+            this.cronometroId = null;
+            
+            if (this.statusCronometro !== 'ENCERRADO') {
+                this.statusCronometro = 'PARADO';
+            }
+            if (salvar) this.salvarEstadoCronometro();
+        },
+
+        resetarCronometro() {
+            this.pararCronometro(false); // Para sem salvar ainda
+            this.statusCronometro = 'PARADO';
+            this.tempoRestante = this.duracaoPartida * 60;
+            this.salvarEstadoCronometro(); // Salva resetado
+        },
+
+        ajustarTempo(minutos) {
+            // Deprecated logic from previous request, but keeping safe
+             this.resetarCronometro();
+        },
+
+        abrirEditorTempo() {
+            const novoTempo = prompt("Digite o tempo em minutos:", this.duracaoPartida);
+            if (novoTempo && !isNaN(novoTempo)) {
+                this.duracaoPartida = parseInt(novoTempo);
+                this.resetarCronometro();
+            }
+        },
+        ajustarSegundos(segundos) {
+            // Se estiver rodando, precisamos atualizar o snapshot base também
+            this.tempoRestante += segundos;
+            if (this.tempoRestante < 0) this.tempoRestante = 0;
+            
+            // Salva o novo tempo restante como snapshot atual
+            // Se estiver rodando, isso "reseta" o delta para começar a contar do novo valor neste instante
+            this.salvarEstadoCronometro(); 
+
+            if (this.tempoRestante === 0 && this.statusCronometro === 'RODANDO') {
+                this.pararCronometro(false);
+                this.statusCronometro = 'ENCERRADO';
+                
+                // Atualiza objeto
+                this.jogo.cronometro.status = 'ENCERRADO';
+                this.jogo.cronometro.tempoRestanteSnapshot = 0;
+                this.jogo.cronometro.ultimoUpdate = null;
+
+                this.salvarAlteracoes(true); // Finaliza partida
+                this.tocarApitoFinal();
+            }
+        },
+        tocarApitoFinal() {
+            if (this.apitoTocando) return;
+            this.apitoTocando = true;
+            // Libera a flag após 3s (tempo seguro do apito)
+            setTimeout(() => { this.apitoTocando = false; }, 3000);
+
+            // Tenta tocar arquivo MP3 se existir
+            try {
+                const audio = new Audio('/apito.mp3'); 
+                const playPromise = audio.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise
+                        .then(() => {
+                            // Sucesso! O áudio está tocando.
+                            // Não precisamos fazer nada.
+                        })
+                        .catch(error => {
+                            console.warn("Áudio MP3 falhou, fallback sintético:", error);
+                            // Se falhar o MP3, usamos o sintético
+                            this.tocarApitoSintetico();
+                        });
+                }
+            } catch (e) {
+                console.warn("Erro crítico no áudio:", e);
+                this.tocarApitoSintetico();
+            }
+        },
+        tocarApitoSintetico() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return console.warn("Web Audio API não suportada.");
+                
+                const ctx = new AudioContext();
+                
+                // Função auxiliar para tocar um "sopro"
+                const tocarSopro = (inicio, duracao) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    
+                    // Frequência base alta (apito)
+                    osc.type = 'triangle'; // ou 'sine' saturada
+                    // Reduzido de 3500 para 2200 para ficar menos "agudo/irritante"
+                    // Frequência real de apitos varia, mas 2-3kHz é comum.
+                    osc.frequency.setValueAtTime(2200, ctx.currentTime + inicio);
+                    
+                    // Modulação de amplitude (Trinado - a "bolinha" do apito)
+                    const lfo = ctx.createOscillator();
+                    lfo.type = 'square';
+                    lfo.frequency.value = 25; // Hz do trinado (rápido)
+                    
+                    const lfoGain = ctx.createGain();
+                    lfoGain.gain.value = 800; // Reduzido profundidade para combinar com freq menor
+                    
+                    lfo.connect(osc.frequency);
+                    lfo.start(ctx.currentTime + inicio);
+                    lfo.stop(ctx.currentTime + inicio + duracao);
+
+                    // Envelope de volume (Ataque rápido, sustain, decay)
+                    gain.gain.setValueAtTime(0, ctx.currentTime + inicio);
+                    gain.gain.linearRampToValueAtTime(0.8, ctx.currentTime + inicio + 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + inicio + duracao);
+
+                    osc.start(ctx.currentTime + inicio);
+                    osc.stop(ctx.currentTime + inicio + duracao);
+                };
+
+                // Sequência de apitos: Curto - Curto - Longo (Fim de jogo clássico)
+                tocarSopro(0, 0.4);
+                tocarSopro(0.5, 0.4);
+                tocarSopro(1.0, 1.2);
+
+            } catch (e) {
+                console.error("Erro ao tocar apito:", e);
+            }
+        }
     }
 }
 </script>

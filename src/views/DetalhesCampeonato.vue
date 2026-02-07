@@ -82,11 +82,14 @@
             <BCard class="shadow-sm">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h4 class="m-0">
-  <span v-if="temGrupo">
-    RODADAS – GRUPO {{ grupoAtual }}
+  <span v-if="nomeFaseAtual" class="text-success fw-bold">
+    {{ nomeFaseAtual }}
+  </span>
+  <span v-else-if="temGrupo">
+    GRUPO {{ grupoAtual }}
   </span>
   <span v-else>
-    Rodada {{ rodadaAtual }}
+    Rodada {{ paginaAtual }}
   </span>
 </h4>
 
@@ -179,6 +182,14 @@
                             </BCol>
                             <BCol cols="4" md="2" class="px-0">
     <div class="d-flex flex-column align-items-center">
+
+        <!-- DISPLAY CRONÔMETRO LISTA -->
+        <div v-if="jogo.cronometro && (jogo.cronometro.status !== 'PARADO' || (jogo.cronometro.tempoRestanteSnapshot < (jogo.cronometro.duracaoPartida || 10) * 60))" 
+             class="mb-1 fw-bold font-monospace px-2 rounded"
+             :class="{'text-success bg-light border border-success': jogo.cronometro.status === 'RODANDO', 'text-danger': jogo.cronometro.status === 'ENCERRADO', 'text-warning bg-light border border-warning': jogo.cronometro.status === 'PARADO'}"
+             style="font-size: 0.9rem;">
+             {{ getTempoCorrente(jogo) }}
+        </div>
 
         <!-- Placar -->
         <div class="d-flex justify-content-center align-items-center gap-1">
@@ -384,7 +395,9 @@ export default {
         fundoAtivo: '#ffd600',
         textoAtivo: '#3a2f00'
       }
-    }
+    },
+    now: Date.now(),
+    timerInterval: null
   }
 },
 
@@ -398,15 +411,16 @@ export default {
 },
 
       temGrupo() {
-  if (!this.campeonato || !this.campeonato.jogos) return false;
-  return this.campeonato.jogos.some(j => j.grupo);
+  if (!this.jogosDaRodada.length) return false;
+  return !!this.jogosDaRodada[0].grupo;
 },
 
 
       grupoAtual() {
   if (!this.campeonato) return '';
-  const grupos = this.campeonato.grupos?.map(g => g.nome) || [];
-  return grupos[this.paginaAtual - 1] || '';
+  const jogos = this.jogosDaRodada;
+  if (jogos.length > 0 && jogos[0].grupo) return jogos[0].grupo;
+  return '';
 },
 
 
@@ -422,17 +436,10 @@ export default {
   // 🔹 GRUPOS
   // ===============================
   if (tipo === 'GRUPOS') {
-    const grupos = [...new Set(jogos.map(j => j.grupo))].filter(Boolean);
+    const grupos = [...new Set(jogos.filter(j => j.grupo && !j.fase).map(j => j.grupo))].filter(Boolean);
+    const rodadasMata = [...new Set(jogos.filter(j => j.fase).map(j => j.rodada))].sort((a,b) => a-b);
 
-    let totalPaginas = grupos.length;
-
-    // se já existe mata-mata, adiciona páginas das fases
-    const rodadasFase = [
-      ...new Set(jogos.filter(j => j.fase).map(j => j.rodada))
-    ];
-
-    totalPaginas += rodadasFase.length;
-
+    let totalPaginas = grupos.length + rodadasMata.length;
     return Array.from({ length: totalPaginas }, (_, i) => i + 1);
   }
 
@@ -565,7 +572,7 @@ export default {
   // 🔹 CAMPEONATO DE GRUPOS
   // ===============================
   if (tipo === 'GRUPOS') {
-    const grupos = [...new Set(jogos.map(j => j.grupo))].filter(Boolean);
+    const grupos = [...new Set(jogos.filter(j => j.grupo && !j.fase).map(j => j.grupo))].filter(Boolean);
     const totalPaginasGrupo = grupos.length;
 
     // ainda mostrando grupos
@@ -575,9 +582,11 @@ export default {
     }
 
     // depois dos grupos → mata-mata
-    return jogos.filter(
-      j => j.fase && j.rodada === this.paginaAtual
-    );
+    const rodadasMata = [...new Set(jogos.filter(j => j.fase).map(j => j.rodada))].sort((a,b) => a-b);
+    const indiceRodada = this.paginaAtual - totalPaginasGrupo - 1;
+    const rodadaDesejada = rodadasMata[indiceRodada];
+
+    return jogos.filter(j => j.fase && j.rodada === rodadaDesejada);
   }
 
   // ===============================
@@ -728,6 +737,14 @@ podeEncerrarLigaComMataMata() {
     async mounted() {
         this.id = this.$route.params.id
         await this.carregarCampeonato();
+        
+        // Iniciar timer visual
+        this.timerInterval = setInterval(() => {
+            this.now = Date.now();
+        }, 1000);
+    },
+    beforeUnmount() {
+        if (this.timerInterval) clearInterval(this.timerInterval);
     },
     methods: {
 
@@ -799,6 +816,24 @@ podeEncerrarLigaComMataMata() {
   }
 },
 
+        getTempoCorrente(jogo) {
+            if (!jogo.cronometro) return "";
+            if (jogo.cronometro.status === 'ENCERRADO') return "FIM";
+            
+            let segundos = jogo.cronometro.tempoRestanteSnapshot;
+            
+            if (jogo.cronometro.status === 'RODANDO' && jogo.cronometro.ultimoUpdate) {
+                const decorrido = Math.floor((this.now - jogo.cronometro.ultimoUpdate) / 1000);
+                segundos = segundos - decorrido;
+            }
+
+            if (segundos <= 0) return "FIM";
+
+            const m = Math.floor(segundos / 60);
+            const s = segundos % 60;
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        },
+
 avancarRodada() {
   if (this.rodadaAtual < this.totalRodadas) {
     this.rodadaAtual++;
@@ -832,37 +867,18 @@ salvarRodadaAtual() {
   .sort((a, b) => a.posicao - b.posicao);
 
 
+  /* REMOVIDO: Restrição de paridade. O Sistema Bye lida com ímpares.
   if (classificados.length % 2 !== 0) {
     alert('Quantidade de classificados deve ser par.');
     return;
   }
+  */
 
-  const jogos = [];
-  let confrontoId = 1;
+  // 🔥 USO DO GERADOR INTELIGENTE (BYE SYSTEM)
+  // Ele lida com ímpares, potências quebradas (6, 12) e cria jogos de Bye automaticamente.
+  const turnosMataMata = this.campeonato.turnosMataMata || 1;
+  const jogos = gerarJogosComByeSystem(classificados, turnosMataMata, this.totalRodadas);
 
-  for (let i = 0; i < classificados.length / 2; i++) {
-    const timeA = classificados[i];
-    const timeB = classificados[classificados.length - 1 - i];
-
-    jogos.push({
-  id: Date.now() + i,
-  confrontoId,
-  fase: 'Mata-Mata',
-
-  // 🔥 ESSA LINHA É A CORREÇÃO
-  rodada: this.totalRodadas + 1,
-
-  turno: 1,
-  finalizado: false,
-  golsA: null,
-  golsB: null,
-  timeA: { ...timeA },
-  timeB: { ...timeB }
-});
-
-
-    confrontoId++;
-  }
 
   // adiciona os jogos ao campeonato
   this.campeonato.jogos.push(...jogos);
@@ -959,8 +975,6 @@ calcularClassificacaoPontosCorridos() {
   try {
     const dados = await DbService.getCampeonatoById(this.id);
 
-    console.log('CAMPEONATO CARREGADO:', dados);
-    console.log('adicionarNacionalidade:', dados.adicionarNacionalidade);
 
     if (dados) {
 
@@ -1262,10 +1276,35 @@ const novaRodada = ultimaRodada + 1;
             const qtdDiretos = this.campeonato.classificadosPorGrupo || 2;
             let modoKnockout = this.campeonato.modoKnockout || 'PADRAO';
 
+            // 🚀 RECALCULA ESTATÍSTICAS DE TODOS (Crucial para o Ranking Geral)
+            const mapaStats = {};
+            this.campeonato.timesParticipantes.forEach(t => {
+                mapaStats[t.id] = { ...t, pontos: 0, vitorias: 0, saldoGols: 0, golsPro: 0, golsContra: 0 };
+            });
+            this.campeonato.jogos.forEach(jogo => {
+                if (!jogo.finalizado || jogo.fase) return;
+                const tA = mapaStats[jogo.timeA.id];
+                const tB = mapaStats[jogo.timeB.id];
+                if (jogo.golsA > jogo.golsB) { tA.pontos += 3; tA.vitorias++; }
+                else if (jogo.golsB > jogo.golsA) { tB.pontos += 3; tB.vitorias++; }
+                else { tA.pontos += 1; tB.pontos += 1; }
+                tA.saldoGols += (jogo.golsA - jogo.golsB);
+                tB.saldoGols += (jogo.golsB - jogo.golsA);
+                tA.golsPro += jogo.golsA;
+                tB.golsPro += jogo.golsB;
+                tA.golsContra += jogo.golsB; // ✅ GARANTE GOLS CONTRA
+                tB.golsContra += jogo.golsA;
+            });
+
+            // Coleta os classificados já incluindo as estatísticas
             let timesClassificados = [];
             for (const nomeGrupo in classificacao) {
                 const grupo = classificacao[nomeGrupo];
-                timesClassificados.push(...grupo.slice(0, qtdDiretos));
+                const diretos = grupo.slice(0, qtdDiretos).map(t => ({
+                    ...t,
+                    ...(mapaStats[t.id] || {})
+                }));
+                timesClassificados.push(...diretos);
             }
 
             const totalClassificados = timesClassificados.length;
@@ -1288,7 +1327,6 @@ const novaRodada = ultimaRodada + 1;
                 }
             }
 
-            console.log("Modo Final Definido:", modoKnockout);
 
             // === LÓGICA 1: SISTEMA DE BYE / PLAYOFFS ===
             if (modoKnockout === 'BYE') {
@@ -1322,13 +1360,16 @@ const novaRodada = ultimaRodada + 1;
                 return; // FIM LÓGICA BYE
             }
 
-            // === LÓGICA 2: PADRÃO (REPESCAGEM E POTÊNCIAS DE 2) ===
             let usarRepescagem = this.campeonato.usarRepescagem || false;
             let timesRestantes = [];
 
             for (const nomeGrupo in classificacao) {
                 const grupo = classificacao[nomeGrupo];
-                timesRestantes.push(...grupo.slice(qtdDiretos));
+                const restantes = grupo.slice(qtdDiretos).map(t => ({
+                    ...t,
+                    ...(mapaStats[t.id] || {})
+                }));
+                timesRestantes.push(...restantes);
             }
 
             // Oferta de repescagem de segurança
@@ -1352,34 +1393,49 @@ const novaRodada = ultimaRodada + 1;
                     timesRestantes.sort((a, b) => {
                         if (b.pontos !== a.pontos) return b.pontos - a.pontos;
                         if (b.vitorias !== a.vitorias) return b.vitorias - a.vitorias;
-                        return b.saldoGols - a.saldoGols;
+                        if (b.saldoGols !== a.saldoGols) return b.saldoGols - a.saldoGols;
+                        return b.golsPro - a.golsPro;
                     });
                     timesExtras = timesRestantes.slice(0, vagasFaltantes);
                 }
             }
 
-            let msg = "Isso encerrará a fase de grupos e gerará o Mata-Mata.";
-            if (timesExtras.length > 0) msg += `\n\nℹ️ REPESCAGEM: + ${timesExtras.length} melhores 3ºs classificados.`;
+            // 🔥 VOLTANDO COM A ESCOLHA FLEXÍVEL (Com nomes corrigidos)
+            // 🏆 ESCOLHA DEFINITIVA NA HORA DO ENCERRAMENTO
+            const msg = "Deseja encerrar os grupos e gerar o Mata-Mata?\n\n" +
+                        "Clique em [OK] para CLASSIFICAÇÃO GERAL (1º Geral x Último Geral)\n" +
+                        "Clique em [CANCELAR] para CLASSIFICAÇÃO PADRÃO (1ºA x 2ºB)";
 
-            if (!confirm(msg)) return;
+            const escolhaGeral = confirm(msg);
+            const modoDefinitivo = escolhaGeral ? 'GERAL' : 'GRUPOS';
+            
+            // Grava a decisão no objeto para persistência
+            this.campeonato.tipoSorteioMataMata = modoDefinitivo;
 
             try {
                 this.carregando = true;
                 const ultimaRodadaAntiga = this.totalRodadas;
 
-                if (usarRepescagem || timesExtras.length > 0) {
+                if (modoDefinitivo === 'GERAL') {
+                    console.log(`[Gerador] Executando: CLASSIFICAÇÃO GERAL`);
                     const listaFinal = [...timesClassificados, ...timesExtras];
                     await DbService.avancarGruposComSeeding(this.campeonato.id, listaFinal);
                 } else {
+                    console.log(`[Gerador] Executando: CLASSIFICAÇÃO PADRÃO`);
                     const classificadosPorGrupoObj = {};
                     for (const nome in classificacao) {
                         classificadosPorGrupoObj[nome] = classificacao[nome].slice(0, qtdDiretos);
                     }
                     await DbService.avancarGruposParaMataMata(this.campeonato.id, classificadosPorGrupoObj);
                 }
-                this.campeonato.faseEncerrada = true;
+
+                // 🏁 IMPORTANTE: Recarregar do banco IMEDIATAMENTE para ter o objeto fresco com os novos jogos
+                const campFresco = await DbService.getCampeonatoById(this.campeonato.id);
+                campFresco.faseEncerrada = true;
+                await DbService.atualizarCampeonato(campFresco);
+
                 alert("Mata-Mata gerado com sucesso!");
-                await this.carregarCampeonato();
+                await this.carregarCampeonato(); // Atualiza a UI final
                 this.rodadaAtual = ultimaRodadaAntiga + 1;
             } catch (error) {
                 console.error(error);
@@ -1392,7 +1448,7 @@ const novaRodada = ultimaRodada + 1;
         calcularClassificacaoGrupos() {
     const mapaStats = {};
     this.campeonato.timesParticipantes.forEach(t => {
-        mapaStats[t.id] = { ...t, pontos: 0, vitorias: 0, saldoGols: 0, golsPro: 0 };
+        mapaStats[t.id] = { ...t, pontos: 0, vitorias: 0, saldoGols: 0, golsPro: 0, golsContra: 0 };
     });
 
     this.campeonato.jogos.forEach(jogo => {
@@ -1416,6 +1472,8 @@ const novaRodada = ultimaRodada + 1;
         tB.saldoGols += (jogo.golsB - jogo.golsA);
         tA.golsPro += jogo.golsA;
         tB.golsPro += jogo.golsB;
+        tA.golsContra += jogo.golsB; // ✅ GARANTE GOLS CONTRA
+        tB.golsContra += jogo.golsA;
     });
 
     const gruposObj = {};
@@ -1435,8 +1493,9 @@ const novaRodada = ultimaRodada + 1;
     for (const nome in gruposObj) {
         gruposObj[nome].sort((a, b) => {
             if (b.pontos !== a.pontos) return b.pontos - a.pontos;
-            if (b.vitorias !== a.vitorias) return b.vitorias - a.vitorias;
-            return b.saldoGols - a.saldoGols;
+            if (b.saldoGols !== a.saldoGols) return b.saldoGols - a.saldoGols;
+            if (b.golsPro !== a.golsPro) return b.golsPro - a.golsPro;
+            return a.golsContra - b.golsContra; // Menos gols contra é melhor
         });
     }
 

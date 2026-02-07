@@ -43,23 +43,21 @@
       class="form-check-input"
       type="checkbox"
       id="ativarMataMata"
-      v-model="campeonato.classificadosParaMataMata"
-      :true-value="4"
-      :false-value="null"
+      v-model="campeonato.ativarMataMataPontosCorridos"
     />
     <label class="form-check-label text-white fw-bold" for="ativarMataMata">
       Ativar Fase Final (Mata-Mata)
     </label>
   </div>
 
-  <div v-if="campeonato.classificadosParaMataMata !== null" class="mt-2">
+  <div v-if="campeonato.ativarMataMataPontosCorridos" class="mt-2">
     <BRow>
       <BCol md="6">
         <BFormGroup label="Quantos classificam:" class="text-white">
           <BFormInput
             type="number"
             min="2"
-            :max="idsSelecionados.length"
+            :max="idsSelecionados.length > 0 ? idsSelecionados.length : 32"
             v-model.number="campeonato.classificadosParaMataMata"
             class="bg-dark text-white border-secondary"
           />
@@ -157,7 +155,7 @@
               </BCol>
 
               <BCol md="3">
-                <BFormGroup label="Avançam por Grupo:" description="Quantos times vão ao mata-mata?" class="text-white">
+                <BFormGroup label="P/ Mata-Mata:" class="text-white">
                   <BFormInput type="number" min="1" max="4" v-model.number="configGrupos.classificadosPorGrupo"
                     class="bg-dark text-white border-secondary" />
                 </BFormGroup>
@@ -165,15 +163,11 @@
 
               <BCol md="3">
                 <BFormGroup label="Definição dos Grupos:" class="text-white">
-                  <BFormSelect
-  v-model="campeonato.modoDefinicao"
-  @change="resetarPreviews"
-  class="bg-dark text-white border-secondary"
->
-  <option value="TECNICOS">Sorteio (Técnicos)</option>
-  <option value="MANUAL">Escolha Manual</option>
-</BFormSelect>
-
+                  <BFormSelect v-model="campeonato.modoDefinicao" @change="resetarPreviews"
+                    class="bg-dark text-white border-secondary">
+                    <option value="TECNICOS">Sorteio (Técnicos)</option>
+                    <option value="MANUAL">Escolha Manual</option>
+                  </BFormSelect>
                 </BFormGroup>
               </BCol>
             </BRow>
@@ -218,6 +212,8 @@
                     </small>
                   </div>
                 </div>
+
+
               </BCol>
             </BRow>
           </div>
@@ -519,8 +515,9 @@ export default {
         tipoClassificacao: 'AUTOMATICA',
         modoDefinicao: 'AUTOMATICO',
         adicionarNacionalidade: false,
-        classificadosParaMataMata: null,
-        turnosMataMata: 1
+        classificadosParaMataMata: 4, // Valor padrão de classificados (se ativado)
+        turnosMataMata: 1,
+        ativarMataMataPontosCorridos: false // Controle UI separado
       },
 
       configGrupos: {
@@ -528,6 +525,7 @@ export default {
   qtdPotes: 2,
   classificadosPorGrupo: 2,
   usarRepescagem: false,
+  tipoSorteioMataMata: 'GRUPOS', // GRUPOS, GERAL
   modoKnockout: 'PADRAO',
   maxTimesPorTecnico: 1, // 👈 NOVO
   potes: [{ times: [] }, { times: [] }],
@@ -680,6 +678,7 @@ export default {
       this.configGrupos = {
         qtdGrupos: 2, qtdPotes: 2, classificadosPorGrupo: 2,
         usarRepescagem: false,
+        tipoSorteioMataMata: 'GRUPOS', // GRUPOS, GERAL
         modoKnockout: 'PADRAO',
         potes: [{ times: [] }, { times: [] }],
         gruposManuais: []
@@ -943,8 +942,8 @@ const dados = {
 
   // ✅ AQUI ESTÁ O CAMPO QUE FALTAVA
   classificadosParaMataMata:
-    this.campeonato.tipo === 'PONTOS_CORRIDOS'
-      ? Number(this.campeonato.classificadosParaMataMata) || null
+    (this.campeonato.tipo === 'PONTOS_CORRIDOS' && this.campeonato.ativarMataMataPontosCorridos)
+      ? (Number(this.campeonato.classificadosParaMataMata) || 4)
       : null,
 
   // 🔥 LIMPA COMPLETAMENTE COISAS DE GRUPO
@@ -962,6 +961,8 @@ modoKnockout:
   this.campeonato.tipo === 'GRUPOS'
     ? this.configGrupos.modoKnockout
     : null,
+
+  tipoSorteioMataMata: 'GRUPOS', // Padrão inicial
 
 grupos:
   this.campeonato.tipo === 'GRUPOS'

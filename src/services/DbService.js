@@ -3,7 +3,8 @@ import {
     gerarJogosPontosCorridos,
     gerarJogosProximaFaseMataMata,
     gerarJogosMataMataDeGrupos,
-    gerarJogosMataMataSeedingGeral
+    gerarJogosMataMataSeedingGeral,
+    gerarJogosComByeSystem
 } from '../utils/GeradorTabela.js';
 
 // Configuração inicial do Banco
@@ -29,11 +30,11 @@ export default {
         const times = await localforage.getItem(KEYS.TIMES);
         return times || [];
     },
-     
+
     async excluirTime(id) {
-    const times = await this.getTimes();
-    const filtrados = times.filter(t => String(t.id) !== String(id));
-    await localforage.setItem(KEYS.TIMES, filtrados);
+        const times = await this.getTimes();
+        const filtrados = times.filter(t => String(t.id) !== String(id));
+        await localforage.setItem(KEYS.TIMES, filtrados);
     },
 
     async adicionarTime(novoTime) {
@@ -75,10 +76,10 @@ export default {
     },
 
     async excluirCampeonato(id) {
-    const camps = await localforage.getItem(KEYS.CAMPEONATOS) || [];
-    const filtrados = camps.filter(c => String(c.id) !== String(id));
-    await localforage.setItem(KEYS.CAMPEONATOS, filtrados);
-},
+        const camps = await localforage.getItem(KEYS.CAMPEONATOS) || [];
+        const filtrados = camps.filter(c => String(c.id) !== String(id));
+        await localforage.setItem(KEYS.CAMPEONATOS, filtrados);
+    },
 
 
     async getCampeonatoById(id) {
@@ -114,37 +115,37 @@ export default {
 
         // 3. Monta o objeto completo
         const novoCampeonato = {
-  id: idCampeonato,
-  nome: dadosBasicos.nome,
-  tipo: dadosBasicos.tipo || 'PONTOS_CORRIDOS',
-  turnos: dadosBasicos.turnos,
-  tipoClassificacao: dadosBasicos.tipoClassificacao,
-  modoDefinicao: dadosBasicos.modoDefinicao,
+            id: idCampeonato,
+            nome: dadosBasicos.nome,
+            tipo: dadosBasicos.tipo || 'PONTOS_CORRIDOS',
+            turnos: dadosBasicos.turnos,
+            tipoClassificacao: dadosBasicos.tipoClassificacao,
+            modoDefinicao: dadosBasicos.modoDefinicao,
 
-  // ✅ SOMENTE PARA GRUPOS
-  classificadosPorGrupo:
-    dadosBasicos.tipo === 'GRUPOS'
-      ? dadosBasicos.classificadosPorGrupo
-      : undefined,
+            // ✅ SOMENTE PARA GRUPOS
+            classificadosPorGrupo:
+                dadosBasicos.tipo === 'GRUPOS'
+                    ? dadosBasicos.classificadosPorGrupo
+                    : undefined,
 
-  // ✅ NOVO: PONTOS CORRIDOS + MATA-MATA
-  classificadosParaMataMata:
-    dadosBasicos.tipo === 'PONTOS_CORRIDOS'
-      ? dadosBasicos.classificadosParaMataMata ?? null
-      : null,
+            // ✅ NOVO: PONTOS CORRIDOS + MATA-MATA
+            classificadosParaMataMata:
+                dadosBasicos.tipo === 'PONTOS_CORRIDOS'
+                    ? dadosBasicos.classificadosParaMataMata ?? null
+                    : null,
 
-  adicionarNacionalidade: dadosBasicos.adicionarNacionalidade === true,
+            adicionarNacionalidade: dadosBasicos.adicionarNacionalidade === true,
 
-  grupos: dadosBasicos.tipo === 'GRUPOS'
-    ? dadosBasicos.grupos || []
-    : [],
+            grupos: dadosBasicos.tipo === 'GRUPOS'
+                ? dadosBasicos.grupos || []
+                : [],
 
-  dataCriacao: new Date().toISOString(),
-  status: 'EM_ANDAMENTO',
+            dataCriacao: new Date().toISOString(),
+            status: 'EM_ANDAMENTO',
 
-  timesParticipantes: JSON.parse(JSON.stringify(dadosBasicos.times)),
-  jogos: JSON.parse(JSON.stringify(tabelaJogos))
-};
+            timesParticipantes: JSON.parse(JSON.stringify(dadosBasicos.times)),
+            jogos: JSON.parse(JSON.stringify(tabelaJogos))
+        };
 
 
 
@@ -181,96 +182,96 @@ export default {
 
     // AVANÇAR FASE (MATA-MATA)
     async avancarFaseMataMata(idCampeonato, vencedores) {
-    const listaCamps = await this.getCampeonatos();
-    const indexCamp = listaCamps.findIndex(
-        c => String(c.id) === String(idCampeonato)
-    );
+        const listaCamps = await this.getCampeonatos();
+        const indexCamp = listaCamps.findIndex(
+            c => String(c.id) === String(idCampeonato)
+        );
 
-    if (indexCamp === -1) {
-        throw new Error("Campeonato não encontrado");
-    }
+        if (indexCamp === -1) {
+            throw new Error("Campeonato não encontrado");
+        }
 
-    const campeonato = listaCamps[indexCamp];
+        const campeonato = listaCamps[indexCamp];
 
-    // ✅ 1. Rodada que está sendo encerrada (vem do front)
-const rodadaAtual = Math.max(
-    ...campeonato.jogos
-        .filter(j => j.rodada === campeonato.jogos
-            .filter(x => x.finalizado)
-            .map(x => x.rodada)
-            .sort((a, b) => b - a)[0]
-        )
-        .map(j => j.rodada)
-);
+        // ✅ 1. Rodada que está sendo encerrada (vem do front)
+        const rodadaAtual = Math.max(
+            ...campeonato.jogos
+                .filter(j => j.rodada === campeonato.jogos
+                    .filter(x => x.finalizado)
+                    .map(x => x.rodada)
+                    .sort((a, b) => b - a)[0]
+                )
+                .map(j => j.rodada)
+        );
 
 
 
-    // 🧹 2. REMOVE TODAS as fases futuras (substituição total)
-    campeonato.jogos = campeonato.jogos.filter(
-        j => j.rodada <= rodadaAtual
-    );
+        // 🧹 2. REMOVE TODAS as fases futuras (substituição total)
+        campeonato.jogos = campeonato.jogos.filter(
+            j => j.rodada <= rodadaAtual
+        );
 
-    // ✅ 3. Gera novamente a próxima fase
-    let novosJogos = gerarJogosProximaFaseMataMata(
-        vencedores,
-        campeonato.turnos,
-        rodadaAtual
-    );
+        // ✅ 3. Gera novamente a próxima fase
+        let novosJogos = gerarJogosProximaFaseMataMata(
+            vencedores,
+            campeonato.turnos,
+            rodadaAtual
+        );
 
-    novosJogos = novosJogos.map(j => ({
-        ...j,
-        campeonatoId: idCampeonato
-    }));
+        novosJogos = novosJogos.map(j => ({
+            ...j,
+            campeonatoId: idCampeonato
+        }));
 
-    campeonato.jogos.push(...novosJogos);
+        campeonato.jogos.push(...novosJogos);
 
-    // 💾 4. Salva
-    await localforage.setItem(KEYS.CAMPEONATOS, listaCamps);
+        // 💾 4. Salva
+        await localforage.setItem(KEYS.CAMPEONATOS, listaCamps);
 
-    return true;
-},
+        return true;
+    },
 
 
 
     // AVANÇAR GRUPOS -> MATA-MATA — SUBSTITUI SE JÁ EXISTIR
-async avancarGruposParaMataMata(idCampeonato, classificadosPorGrupo) {
-    const listaCamps = await this.getCampeonatos();
-    const indexCamp = listaCamps.findIndex(c => String(c.id) === String(idCampeonato));
+    async avancarGruposParaMataMata(idCampeonato, classificadosPorGrupo) {
+        const listaCamps = await this.getCampeonatos();
+        const indexCamp = listaCamps.findIndex(c => String(c.id) === String(idCampeonato));
 
-    if (indexCamp === -1) throw new Error("Campeonato não encontrado");
+        if (indexCamp === -1) throw new Error("Campeonato não encontrado");
 
-    const campeonato = listaCamps[indexCamp];
+        const campeonato = listaCamps[indexCamp];
 
-    // 🔹 Descobre a última rodada da fase de grupos
-    const maxRodadaGrupos = Math.max(
-        ...campeonato.jogos
-            .filter(j => !j.fase) // jogos de grupos não têm fase
-            .map(j => j.rodada)
-    );
+        // 🔹 Descobre a última rodada da fase de grupos
+        const maxRodadaGrupos = Math.max(
+            ...campeonato.jogos
+                .filter(j => !j.fase) // jogos de grupos não têm fase
+                .map(j => j.rodada)
+        );
 
-    // 🧹 Remove QUALQUER mata-mata já criado
-    campeonato.jogos = campeonato.jogos.filter(
-        j => j.rodada <= maxRodadaGrupos
-    );
+        // 🧹 Remove QUALQUER mata-mata já criado
+        campeonato.jogos = campeonato.jogos.filter(
+            j => j.rodada <= maxRodadaGrupos
+        );
 
-    // 🔹 Gera o mata-mata novamente
-    let novosJogos = gerarJogosMataMataDeGrupos(
-        classificadosPorGrupo,
-        campeonato.turnos,
-        maxRodadaGrupos
-    );
+        // 🔹 Gera o mata-mata novamente
+        let novosJogos = gerarJogosMataMataDeGrupos(
+            classificadosPorGrupo,
+            campeonato.turnos,
+            maxRodadaGrupos
+        );
 
-    novosJogos = novosJogos.map(j => ({
-        ...j,
-        campeonatoId: idCampeonato
-    }));
+        novosJogos = novosJogos.map(j => ({
+            ...j,
+            campeonatoId: idCampeonato
+        }));
 
-    campeonato.jogos.push(...novosJogos);
+        campeonato.jogos.push(...novosJogos);
 
-    await localforage.setItem(KEYS.CAMPEONATOS, listaCamps);
+        await localforage.setItem(KEYS.CAMPEONATOS, listaCamps);
 
-    return true;
-},
+        return true;
+    },
 
 
     async resetarBanco() {
@@ -365,20 +366,17 @@ async avancarGruposParaMataMata(idCampeonato, classificadosPorGrupo) {
             // 1. Verifica se já é persistente
             const isPersisted = await navigator.storage.persisted();
             if (isPersisted) {
-                console.log("✅ Armazenamento já é persistente.");
                 return true;
             }
 
             // 2. Se não for, solicita a permissão
             const granted = await navigator.storage.persist();
             if (granted) {
-                console.log("✅ Permissão de persistência concedida!");
             } else {
                 console.warn("⚠️ Permissão de persistência negada ou não atendida pelo navegador.");
             }
             return granted;
         } else {
-            console.log("ℹ️ API de persistência não suportada neste navegador.");
             return false;
         }
     },
@@ -393,7 +391,6 @@ async avancarGruposParaMataMata(idCampeonato, classificadosPorGrupo) {
             const totalMB = (quota / 1024 / 1024).toFixed(2);
             const porcentagem = ((usage / quota) * 100).toFixed(2);
 
-            console.log(`📊 Uso de Disco: ${usoMB}MB de ${totalMB}MB (${porcentagem}%)`);
             return { usoMB, totalMB, porcentagem };
         }
         return null;
@@ -403,10 +400,10 @@ async avancarGruposParaMataMata(idCampeonato, classificadosPorGrupo) {
         const campeonato = await this.getCampeonatoById(idCampeonato);
         if (!campeonato) throw new Error("Campeonato não encontrado");
         const maxRodada = campeonato.jogos.reduce((max, j) => Math.max(max, j.rodada), 0);
-        
-        let novosJogos = gerarJogosMataMataSeedingGeral(listaFinalTimes, campeonato.turnos, maxRodada);
+
+        let novosJogos = gerarJogosComByeSystem(listaFinalTimes, campeonato.turnos, maxRodada);
         novosJogos = novosJogos.map(j => ({ ...j, campeonatoId: idCampeonato }));
-        
+
         campeonato.jogos = [...campeonato.jogos, ...novosJogos];
         await this.atualizarCampeonato(campeonato);
         return true;

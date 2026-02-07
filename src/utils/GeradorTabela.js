@@ -186,7 +186,7 @@ export function gerarJogosMataMataDeGrupos(classificadosPorGrupo, turnos, rodada
     else if (totalTimes === 4) nomeNovaFase = 'Semifinal';
     else if (totalTimes === 2) nomeNovaFase = 'Final';
 
-    const novaRodadaInicial = rodadaAtualMax;
+    const novaRodadaInicial = rodadaAtualMax + 1;
     const novoConfrontoId = Date.now();
 
     return gerarJogosMataMata(timesCruzados, turnos, nomeNovaFase, novaRodadaInicial, novoConfrontoId);
@@ -196,14 +196,20 @@ export function gerarJogosMataMataDeGrupos(classificadosPorGrupo, turnos, rodada
 // Esta é a função que estava faltando!
 export function gerarJogosMataMataSeedingGeral(todosOsTimesClassificados, turnos, rodadaAtualMax) {
 
-    // 1. Ordena todos os classificados pela campanha geral
-    // Critérios: Pontos > Vitórias > Saldo > Gols Pro > Sorteio
+    // 1. Ordena todos os classificados pela campanha geral de todos os grupos
+    // Critérios: Pontos > Vitórias > Saldo > Gols Pro
     const rankingGeral = [...todosOsTimesClassificados].sort((a, b) => {
-        if (b.pontos !== a.pontos) return b.pontos - a.pontos;
-        if (b.vitorias !== a.vitorias) return b.vitorias - a.vitorias;
-        if (b.saldoGols !== a.saldoGols) return b.saldoGols - a.saldoGols;
-        if (b.golsPro !== a.golsPro) return b.golsPro - a.golsPro;
-        return Math.random() - 0.5;
+        const pB = b.pontos || 0; const pA = a.pontos || 0;
+        if (pB !== pA) return pB - pA;
+
+        const sB = b.saldoGols || 0; const sA = a.saldoGols || 0;
+        if (sB !== sA) return sB - sA;
+
+        const gB = b.golsPro || 0; const gA = a.golsPro || 0;
+        if (gB !== gA) return gB - gA;
+
+        const gcB = b.golsContra || 0; const gcA = a.golsContra || 0;
+        return gcA - gcB; // Menos gols contra é melhor
     });
 
     // Se o número for ímpar (segurança), remove o pior
@@ -233,7 +239,7 @@ export function gerarJogosMataMataSeedingGeral(todosOsTimesClassificados, turnos
     else if (totalTimes === 6 || totalTimes === 12) nomeNovaFase = `Playoffs (${totalTimes} times)`;
     else nomeNovaFase = `Fase de ${totalTimes}`;
 
-    const novaRodadaInicial = rodadaAtualMax;
+    const novaRodadaInicial = rodadaAtualMax + 1;
 
     const novoConfrontoId = Date.now();
 
@@ -243,32 +249,44 @@ export function gerarJogosMataMataSeedingGeral(todosOsTimesClassificados, turnos
 // Adicione esta nova função ao final do arquivo ou junto com as funções de Mata-Mata
 
 export function gerarJogosComByeSystem(timesClassificados, turnos, rodadaAtualMax) {
-    // 1. Ordenação Geral (Critério técnico)
+    // 1. Ranking Técnico (1º ao Último) de todos os times passados
+    // Ordena por pontos > vitorias > saldo > golsPro
     const ranking = [...timesClassificados].sort((a, b) => {
-        if (b.pontos !== a.pontos) return b.pontos - a.pontos;
-        if (b.vitorias !== a.vitorias) return b.vitorias - a.vitorias;
-        if (b.saldoGols !== a.saldoGols) return b.saldoGols - a.saldoGols;
-        return b.golsPro - a.golsPro;
+        const pB = b.pontos || 0; const pA = a.pontos || 0;
+        if (pB !== pA) return pB - pA;
+
+        const sB = b.saldoGols || 0; const sA = a.saldoGols || 0;
+        if (sB !== sA) return sB - sA;
+
+        const gB = b.golsPro || 0; const gA = a.golsPro || 0;
+        if (gB !== gA) return gB - gA;
+
+        const gcB = b.golsContra || 0; const gcA = a.golsContra || 0;
+        return gcA - gcB; // Menos gols contra é melhor
     });
 
     const N = ranking.length;
 
-    // Encontrar a potência de 2 alvo
+    // Encontrar a potência de 2 alvo (4, 8, 16...)
     let targetPowerOf2 = 1;
     while (targetPowerOf2 * 2 < N) {
         targetPowerOf2 *= 2;
     }
 
+    // Se já for perfeito, usa o seeding geral padrão
     if (targetPowerOf2 * 2 === N) {
         return gerarJogosMataMataSeedingGeral(ranking, turnos, rodadaAtualMax);
     }
 
     // Cálculos
+    // Ex: 5 times. Alvo 4. Preliminares = 5 - 4 = 1.
     const qtdJogosPreliminares = N - targetPowerOf2;
     const qtdTimesNoPlayoff = qtdJogosPreliminares * 2;
-    const qtdTimesBye = N - qtdTimesNoPlayoff;
+    const qtdTimesBye = N - qtdTimesNoPlayoff; // Times que passam direto (Top Seeds)
 
-    // Separação dos Times
+    // Separação
+    // Times Bye são os melhores (0 até qtdTimesBye - 1)
+    // Times Playoff são os piores (N-1 voltando)
     const timesBye = ranking.slice(0, qtdTimesBye);
     const timesPlayoff = ranking.slice(qtdTimesBye);
 
@@ -276,67 +294,118 @@ export function gerarJogosComByeSystem(timesClassificados, turnos, rodadaAtualMa
     const novaRodada = rodadaAtualMax + 1;
     let confrontoId = Date.now();
 
-    // === NOVA LÓGICA DE DISTRIBUIÇÃO NA CHAVE ===
+    // === CRIAÇÃO DE "SLOTS" PARA A PRÓXIMA FASE ===
+    // Precisamos gerar N jogos (alguns fake/bye, outros reais/preliminares) 
+    // que representem os seeds para a próxima fase (Quartas/Semi).
+    // O número de slots é exatamente targetPowerOf2.
+    // Ex: 5 times -> 4 Slots.
+    // Slot 1: Time 1 (Bye)
+    // Slot 2: Time 2 (Bye)
+    // Slot 3: Time 3 (Bye)
+    // Slot 4: Time 4 (Vencedor de 4v5)
 
-    // Divide os times de Bye em Topo e Fundo (Se for par, 1 pra cada lado)
-    // Ex: Se tiver 2 Byes: Topo=[Flamengo], Fundo=[Palmeiras]
-    const metadeBye = Math.ceil(timesBye.length / 2);
-    const byesTopo = timesBye.slice(0, metadeBye);
-    const byesFundo = timesBye.slice(metadeBye);
+    const slots = [];
 
-    // Função Auxiliar para criar jogo de Bye
-    const criarJogoBye = (time) => ({
-        id: crypto.randomUUID(),
-        rodada: novaRodada,
-        fase: 'Classificação Direta (Bye)',
-        confrontoId: confrontoId++,
-        turno: 1,
-        timeA: time,
-        timeB: { id: 'BYE', nome: 'CLASSIFICADO (BYE)', escudo: null },
-        golsA: 1, golsB: 0,
-        finalizado: true
+    // Preenche slots com Byes
+    timesBye.forEach((time, index) => {
+        const seedOriginal = index + 1;
+        slots.push({
+            tipo: 'BYE',
+            seed: seedOriginal, // 1, 2, 3...
+            time: time
+        });
     });
 
-    // 1. Adiciona Byes do TOPO (Lado A da Chave)
-    byesTopo.forEach(time => {
-        jogosGerados.push(criarJogoBye(time));
-    });
-
-    // 2. Adiciona Jogos de Playoff (Meio da Chave)
-    const nomeFase = `Playoff Preliminar (${qtdTimesNoPlayoff} times)`;
+    // Cria os jogos preliminares e atribui aos slots restantes
+    // A lógica é: O melhor do playoff (Seed X) joga contra o pior (Seed Y).
+    // O vencedor assume o Seed X.
+    const nomeFasePreliminar = `Playoff Preliminar (${qtdTimesNoPlayoff} times)`;
 
     for (let i = 0; i < qtdJogosPreliminares; i++) {
-        const melhor = timesPlayoff[i];
-        const pior = timesPlayoff[timesPlayoff.length - 1 - i];
+        const melhor = timesPlayoff[i]; // ex: 4º
+        const pior = timesPlayoff[timesPlayoff.length - 1 - i]; // ex: 5º
 
-        jogosGerados.push({
-            id: crypto.randomUUID(),
-            rodada: novaRodada,
-            fase: nomeFase,
-            confrontoId: confrontoId,
-            turno: 1,
-            timeA: pior, timeB: melhor, // Ida
-            golsA: null, golsB: null, finalizado: false
+        // O vencedor deste jogo ocupará o slot do "melhor" (Seed 4)
+        // Precisamos saber qual era o seed original na tabela geral.
+        // O "melhor" é o time de índice i no array timesPlayoff.
+        // Seu índice geral é qtdTimesBye + i.
+        const seedFicticio = qtdTimesBye + i + 1;
+
+        slots.push({
+            tipo: 'PRELIMINAR',
+            seed: seedFicticio, // ex: 4
+            timeMelhor: melhor,
+            timePior: pior
         });
-
-        if (turnos === 2) {
-            jogosGerados.push({
-                id: crypto.randomUUID(),
-                rodada: novaRodada + 1,
-                fase: nomeFase,
-                confrontoId: confrontoId,
-                turno: 2,
-                timeA: melhor, timeB: pior, // Volta
-                golsA: null, golsB: null, finalizado: false
-            });
-        }
-        confrontoId++;
     }
 
-    // 3. Adiciona Byes do FUNDO (Lado B da Chave)
-    // Isso garante visualmente que o 2º melhor time fique no final da lista
-    byesFundo.forEach(time => {
-        jogosGerados.push(criarJogoBye(time));
+    // Agora temos `targetPowerOf2` slots.
+    // slots = [ {Bye Seed 1}, {Bye Seed 2}, {Bye Seed 3}, {Prelim Seed 4} ]
+
+    // === ORDENAÇÃO PARA PRÓXIMA FASE (Cruzamento Olímpico) ===
+    // Para que a PRÓXIMA fase (gerada automaticamente pegando a lista) faça os cruzamentos certos (1v4, 2v3),
+    // precisamos entregar a lista na ordem: [Seed 1, Seed 4, Seed 2, Seed 3].
+    // Algoritmo:
+    // Pega 1º e Último. Depois 2º e Penúltimo.
+
+    // Ordena slots pelo seed (garantia)
+    slots.sort((a, b) => a.seed - b.seed);
+
+    const listaFinalOrdenada = [];
+    const totalSlots = slots.length;
+
+    for (let i = 0; i < totalSlots / 2; i++) {
+        const topo = slots[i]; // Seed 1
+        const fundo = slots[totalSlots - 1 - i]; // Seed 4
+
+        // A próxima fase vai pegar (i) e (i+1) pra cruzar.
+        // Então empurramos (Seed 1) e (Seed 4).
+        // Isso gera o jogo 1v4 na próxima fase.
+        listaFinalOrdenada.push(topo);
+        listaFinalOrdenada.push(fundo);
+    }
+    // Resultado [S1, S4, S2, S3] para 4 slots. Correto.
+
+    // === GERAÇÃO DOS OBJETOS DE JOGO ===
+
+    listaFinalOrdenada.forEach(slot => {
+        if (slot.tipo === 'BYE') {
+            jogosGerados.push({
+                id: crypto.randomUUID(),
+                rodada: novaRodada,
+                fase: 'Classificação Direta (Bye)',
+                confrontoId: confrontoId++,
+                turno: 1,
+                timeA: slot.time,
+                timeB: { id: 'BYE', nome: 'CLASSIFICADO (BYE)', escudo: null },
+                golsA: 1, golsB: 0,
+                finalizado: true
+            });
+        } else {
+            // Preliminar
+            jogosGerados.push({
+                id: crypto.randomUUID(),
+                rodada: novaRodada,
+                fase: nomeFasePreliminar,
+                confrontoId: confrontoId,
+                turno: 1,
+                timeA: slot.timePior, timeB: slot.timeMelhor, // Ida (Pior manda)
+                golsA: null, golsB: null, finalizado: false
+            });
+
+            if (turnos === 2) {
+                jogosGerados.push({
+                    id: crypto.randomUUID(),
+                    rodada: novaRodada + 1,
+                    fase: nomeFasePreliminar,
+                    confrontoId: confrontoId,
+                    turno: 2,
+                    timeA: slot.timeMelhor, timeB: slot.timePior, // Volta
+                    golsA: null, golsB: null, finalizado: false
+                });
+            }
+            confrontoId++;
+        }
     });
 
     return jogosGerados;
