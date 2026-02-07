@@ -1,5 +1,5 @@
 <template>
-    <div class="container mt-4 pb-5">
+    <div :class="[abaAtiva === 'FORMACAO' ? 'container-fluid px-md-5' : 'container', 'mt-4 pb-5']">
         <div v-if="carregando" class="text-center py-5">
             <BSpinner variant="primary" label="Carregando..." />
         </div>
@@ -38,9 +38,11 @@
 
             <SumulaEventos v-if="abaAtiva === 'EVENTOS'" :timeA="jogo.timeA" :timeB="jogo.timeB" :elencoA="elencoA"
     :elencoB="elencoB" :titularesA="jogo.titularesA" :titularesB="jogo.titularesB" :jogo="jogo"
+    :golsA="golsA" :golsB="golsB"
     v-model:ferramentaAtiva="ferramentaAtiva"
     @aplicar="aplicarAcao"
     @simular="simularJogo"
+    @simularPenaltis="simularPenaltis"
 />
 
 
@@ -60,6 +62,20 @@
             <SumulaUniformes v-if="abaAtiva === 'UNIFORMES'" :timeA="jogo.timeA" :timeB="jogo.timeB"
                 :uniformeA="jogo.uniformeA" :uniformeB="jogo.uniformeB" :timeFullA="timeFullA" :timeFullB="timeFullB"
                 @selecionar="selecionarUniforme" />
+
+            <SumulaFormacao v-if="abaAtiva === 'FORMACAO'"
+                :timeA="jogo.timeA" :timeB="jogo.timeB"
+                :timeFullA="timeFullA" :timeFullB="timeFullB"
+                :uniformeA="jogo.uniformeA" :uniformeB="jogo.uniformeB"
+                @selecionarCor="selecionarCorPorIndice" />
+
+            <!-- ⚠️ BOTÃO DE PERIGO: ANULAR PARTIDA (Só aparece na aba Súmula/Eventos) -->
+            <div v-if="abaAtiva === 'EVENTOS'" class="mt-5 pt-5 border-top border-secondary text-center">
+                <BButton variant="outline-danger" size="sm" class="opacity-50 hover-opacity-100" @click="anularPartida">
+                    🚫 ANULAR PARTIDA (RESET TOTAL)
+                </BButton>
+                <p class="text-muted small mt-2">Isso apagará todos os gols, cartões e resetará o tempo.</p>
+            </div>
         </div>
     </div>
 </template>
@@ -74,6 +90,7 @@ import SumulaTimeline from '@/components/sumula/SumulaTimeline.vue';
 import SumulaEscalacao from '@/components/sumula/SumulaEscalacao.vue';
 import SumulaSubstituicoes from '@/components/sumula/SumulaSubstituicoes.vue';
 import SumulaUniformes from '@/components/sumula/SumulaUniformes.vue';
+import SumulaFormacao from '@/components/sumula/SumulaFormacao.vue';
 import SocialShareModal from '@/views/SocialShareModal.vue';
 
 export default {
@@ -81,7 +98,7 @@ export default {
     components: {
         BSpinner, BButton, BAlert,
         SumulaHeader, SumulaEventos, SumulaTimeline,
-        SumulaEscalacao, SumulaSubstituicoes, SumulaUniformes, SocialShareModal
+        SumulaEscalacao, SumulaSubstituicoes, SumulaUniformes, SumulaFormacao, SocialShareModal
     },
     data() {
         return {
@@ -192,21 +209,35 @@ export default {
                 const timeGlobalA = await DbService.getTimeById(jogoEncontrado.timeA.id);
                 const timeGlobalB = await DbService.getTimeById(jogoEncontrado.timeB.id);
 
-                const snapA = camp.timesParticipantes.find(t => t.id === jogoEncontrado.timeA.id) || {};
-                const snapB = camp.timesParticipantes.find(t => t.id === jogoEncontrado.timeB.id) || {};
+                const snapA = camp.timesParticipantes.find(t => t.id == jogoEncontrado.timeA.id) || {};
+                const snapB = camp.timesParticipantes.find(t => t.id == jogoEncontrado.timeB.id) || {};
 
-                this.timeFullA = timeGlobalA || snapA;
-                this.timeFullB = timeGlobalB || snapB;
+                // REVERSÃO DO MERGE: Prioridade Máxima para os Dados Globais (Cadastro)
+                // Isso garante que nomes dos jogadores e escudos venham do cadastro oficial
+                const finalA = { ...(snapA || {}), ...(timeGlobalA || {}) };
+                const finalB = { ...(snapB || {}), ...(timeGlobalB || {}) };
 
-                if ((!jogoEncontrado.timeA.cores || jogoEncontrado.timeA.cores.length === 0) && this.timeFullA.cores) {
-                    jogoEncontrado.timeA.cores = this.timeFullA.cores;
-                }
-                if ((!jogoEncontrado.timeB.cores || jogoEncontrado.timeB.cores.length === 0) && this.timeFullB.cores) {
-                    jogoEncontrado.timeB.cores = this.timeFullB.cores;
-                }
+                // EXCEÇÃO: O Técnico e o País são específicos do Campeonato (onde estão FAB, VIT, etc.)
+                if (snapA?.tecnico) finalA.tecnico = snapA.tecnico;
+                if (snapA?.pais) finalA.pais = snapA.pais;
+                if (snapB?.tecnico) finalB.tecnico = snapB.tecnico;
+                if (snapB?.pais) finalB.pais = snapB.pais;
 
+                this.timeFullA = finalA;
+                this.timeFullB = finalB;
+
+                // Sync elenco para as abas Súmula e Escalacao
                 this.elencoA = this.timeFullA.jogadores || [];
                 this.elencoB = this.timeFullB.jogadores || [];
+
+                // 🔥 INICIALIZAÇÃO INTELIGENTE DE UNIFORMES
+                if (!jogoEncontrado.uniformeA && this.timeFullA.cores && this.timeFullA.cores.length > 0) {
+                    jogoEncontrado.uniformeA = this.timeFullA.cores[0]; // Casa
+                }
+                if (!jogoEncontrado.uniformeB && this.timeFullB.cores && this.timeFullB.cores.length > 0) {
+                    // Tenta Fora (índice 1), se não tiver usa Casa (índice 0)
+                    jogoEncontrado.uniformeB = this.timeFullB.cores[1] || this.timeFullB.cores[0];
+                }
 
                 this.jogo = jogoEncontrado;
             } catch (error) {
@@ -250,6 +281,12 @@ export default {
             if (lado === 'A') this.jogo.uniformeA = cor; else this.jogo.uniformeB = cor;
             this.salvarAlteracoes(false);
         },
+        selecionarCorPorIndice(idx, lado) {
+            const timeFull = lado === 'A' ? this.timeFullA : this.timeFullB;
+            if (timeFull.cores && timeFull.cores[idx]) {
+                this.selecionarUniforme(timeFull.cores[idx], lado);
+            }
+        },
 
         async aplicarAcao(jogador, timeId) {
             if (!this.ferramentaAtiva) return;
@@ -264,6 +301,19 @@ export default {
                     this.jogo.craqueTimeId = timeId;
                 }
             } else {
+                // 🔥 Lógica de Escalonamento (Advertência -> Amarelo -> Vermelho)
+                if (this.ferramentaAtiva === 'AMARELO') {
+                    // Ao aplicar Amarelo, remove a Advertência (Azul) anterior
+                    this.jogo.eventos = this.jogo.eventos.filter(e => 
+                        !(e.jogadorId == snapshot.id && e.timeId == timeId && e.tipo === 'AZUL')
+                    );
+                } else if (this.ferramentaAtiva === 'VERMELHO') {
+                    // Ao aplicar Vermelho, remove Amarelo e Advertência anteriores
+                    this.jogo.eventos = this.jogo.eventos.filter(e => 
+                        !(e.jogadorId == snapshot.id && e.timeId == timeId && (e.tipo === 'AMARELO' || e.tipo === 'AZUL'))
+                    );
+                }
+
                 this.jogo.eventos.push({
                     id: Date.now(),
                     tipo: this.ferramentaAtiva,
@@ -383,6 +433,66 @@ export default {
     }
 
     this.salvarAlteracoes(true);
+},
+
+simularPenaltis() {
+    if (!confirm("Deseja simular o resultado dos pênaltis?")) return;
+
+    // Gera um resultado onde não há empate
+    let pA, pB;
+    do {
+        pA = Math.floor(Math.random() * 6); // 0 a 5
+        pB = Math.floor(Math.random() * 6);
+    } while (pA === pB);
+
+    this.jogo.penaltisA = pA;
+    this.jogo.penaltisB = pB;
+
+    this.salvarAlteracoes(true);
+    alert(`Pênaltis simulados: ${pA} x ${pB}`);
+},
+
+async anularPartida() {
+    const msg = "⚠️ ATENÇÃO: Deseja realmente ANULAR esta partida?\n\nIsso irá:\n- Zerar o Placar\n- Remover Gols e Cartões\n- Resetar Cronômetro\n- Remover status de Finalizado\n\nEsta ação não pode ser desfeita!";
+    if (!confirm(msg)) return;
+
+    if (!confirm("CONFIRMAÇÃO FINAL: Tem certeza absoluta?")) return;
+
+    try {
+        this.pararCronometro(false);
+
+        // Reset do objeto jogo
+        this.jogo.eventos = [];
+        this.jogo.substituicoes = [];
+        this.jogo.golsA = null;
+        this.jogo.golsB = null;
+        this.jogo.finalizado = false;
+        this.jogo.craque = null;
+        this.jogo.craqueTimeId = null;
+        this.jogo.nota = 0;
+
+        // Reset Cronômetro
+        const duracao = this.duracaoPartida || 10;
+        this.tempoRestante = duracao * 60;
+        this.statusCronometro = 'PARADO';
+
+        this.jogo.cronometro = {
+            duracaoPartida: duracao,
+            tempoRestanteSnapshot: duracao * 60,
+            ultimoUpdate: null,
+            status: 'PARADO'
+        };
+
+        // Salva as alterações (passando false para não forçar 'finalizado: true')
+        await this.salvarAlteracoes(false);
+        
+        alert("Partida anulada com sucesso!");
+        // Opcional: recarrega para garantir sincronia
+        await this.carregarDados(); 
+    } catch (e) {
+        console.error(e);
+        alert("Erro ao anular partida.");
+    }
 },
 
         voltar() { this.$router.push(`/campeonato/${this.idCampeonato}`); },

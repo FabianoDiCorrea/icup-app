@@ -54,11 +54,11 @@ export default {
     },
     methods: {
         getIcone(ev) {
-            const icons = { GOL: '⚽', AMARELO: '🟨', VERMELHO: '🟥', CRAQUE: '⭐', SUBS: '🔄' };
+            const icons = { GOL: '⚽', AZUL: '🟦', AMARELO: '🟨', VERMELHO: '🟥', CRAQUE: '⭐', SUBS: '🔄' };
             return icons[ev.tipo] || '•';
         },
         getDescricao(t) {
-            const desc = { GOL: 'Gol Marcado', AMARELO: 'Cartão Amarelo', VERMELHO: 'Cartão Vermelho', CRAQUE: 'Eleito Craque' };
+            const desc = { GOL: 'Gol Marcado', AZUL: 'Cartão Azul (Advertência)', AMARELO: 'Cartão Amarelo', VERMELHO: 'Cartão Vermelho', CRAQUE: 'Eleito Craque' };
             return desc[t] || t;
         },
         getNomeTime(id) {

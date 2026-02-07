@@ -69,7 +69,7 @@
                                 </BTd>
 
                                 <BTd class="fw-bold">
-                                    {{ jogador.nome }}
+                                    Nº {{ jogador.numero }} - {{ jogador.nome }}
                                     <span v-if="abaAtiva === 'CRAQUES' && index === 0" class="badge bg-warning text-dark ms-2 small">CRAQUE DA GALERA</span>
                                 </BTd>
 
@@ -237,6 +237,7 @@ export default {
                                         timeId: evento.timeId,
                                         jogadorId: evento.jogadorId,
                                         nomeSnapshot: evento.jogador ? evento.jogador.nome : null,
+                                        numeroSnapshot: evento.jogador ? (evento.jogador.numero || evento.jogador.id) : null,
                                         total: 0
                                     };
                                 }
@@ -266,6 +267,7 @@ export default {
                                 timeId: jogo.craqueTimeId,
                                 jogadorId: jogo.craque.id,
                                 nomeSnapshot: jogo.craque.nome, // Prioriza o nome salvo no momento do jogo
+                                numeroSnapshot: jogo.craque.numero || jogo.craque.id,
                                 total: 0
                             };
                         }
@@ -282,11 +284,11 @@ export default {
             const lista = Object.values(mapaDados).map(item => {
                 const time = camp.timesParticipantes.find(t => t.id === item.timeId);
                 let nomeJogador = item.nomeSnapshot || 'Desconhecido';
+                let numeroJogador = item.numeroSnapshot || item.jogadorId; 
                 let nomeTime = 'Time Removido';
                 let escudoTime = '';
                 let tecnico = '';
                 let pais = '';
-
 
                 if (time) {
                     nomeTime = time.nome;
@@ -294,16 +296,18 @@ export default {
                     tecnico = time.tecnico || '';
                     pais = time.pais || '';
 
-                    // Fallback se não tiver snapshot
-                    if (nomeJogador === 'Desconhecido') {
-                        const jogador = time.jogadores.find(j => (j.id || j.numero) == item.jogadorId);
-                        if (jogador) nomeJogador = jogador.nome;
+                    // Fallback se não tiver snapshot ou info completa
+                    const jogador = time.jogadores.find(j => (j.id || j.numero) == item.jogadorId);
+                    if (jogador) {
+                        if (nomeJogador === 'Desconhecido') nomeJogador = jogador.nome;
+                        if (!item.numeroSnapshot) numeroJogador = jogador.numero || jogador.id;
                     }
                 }
 
                 return {
                     chaveUnica: `${item.timeId}_${item.jogadorId}`,
                     nome: nomeJogador,
+                    numero: numeroJogador,
                     nomeTime: nomeTime,
                     escudoTime: escudoTime,
                     total: item.total,

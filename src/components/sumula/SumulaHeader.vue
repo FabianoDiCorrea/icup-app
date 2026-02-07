@@ -12,105 +12,106 @@
             </div>
         </div>
 
-        <BCard class="text-center shadow-sm mb-4 border-secondary bg-dark text-white">
-            <div class="position-relative py-3" style="min-height: 220px;">
+        <BCard class="text-center shadow-sm mb-4 border-secondary bg-dark text-white p-0 overflow-hidden">
+            <div class="d-flex flex-column flex-lg-row position-relative">
                 
-                <!-- Wrapper Central do Placar (Centralizado) -->
-                <div class="d-flex justify-content-center align-items-center mb-3">
-                    
-                    <div class="d-flex justify-content-center align-items-center" style="pointer-events: auto;">
-                        <!-- Time A -->
-                        <div class="text-center mx-2 mx-md-4" style="width: 120px;">
-                            <div class="position-relative d-inline-block">
-                                <img :src="timeA.escudo" class="mb-2 d-block mx-auto img-fluid escudo-time" />
-                                <div v-if="uniformeA" class="uniforme-mini" 
-                                     :style="{ backgroundColor: uniformeA.interno, borderColor: uniformeA.externo, width: '25px', height: '25px', borderWidth: '4px' }">
+                <!-- Área Principal (Placar e Infos) -->
+                <div class="flex-grow-1 py-3 px-2 order-1">
+                    <!-- Wrapper Central do Placar -->
+                    <div class="d-flex justify-content-center align-items-center mb-3">
+                        <div class="d-flex justify-content-center align-items-center">
+                            <!-- Time A -->
+                            <div class="text-center mx-1 mx-md-4" style="width: 100px;">
+                                <div class="position-relative d-inline-block">
+                                    <img :src="timeA.escudo" class="mb-1 d-block mx-auto img-fluid escudo-time" />
+                                    <div v-if="uniformeA" class="uniforme-mini" 
+                                         :style="{ backgroundColor: uniformeA.interno, borderColor: uniformeA.externo, width: '20px', height: '20px', borderWidth: '3px' }">
+                                    </div>
                                 </div>
+                                <div class="fw-bold text-truncate mt-1 d-block small mb-0">{{ timeA.nome }}</div>
                             </div>
-                            <div class="fw-bold text-truncate mt-1 d-block h6 mb-0">{{ timeA.nome }}</div>
-                        </div>
 
-                        <!-- Placar -->
-                        <div class="d-flex align-items-center px-3 px-md-4 py-2 rounded shadow border border-secondary bg-secondary mx-2">
-                            <h1 class="m-0 fw-bold text-white d-md-none display-5">{{ golsA }}</h1>
-                            <h1 class="m-0 fw-bold text-white d-none d-md-block display-3">{{ golsA }}</h1>
-                            <span class="mx-2 mx-md-3 text-white-50 h3 m-0">x</span>
-                            <h1 class="m-0 fw-bold text-white d-md-none display-5">{{ golsB }}</h1>
-                            <h1 class="m-0 fw-bold text-white d-none d-md-block display-3">{{ golsB }}</h1>
-                        </div>
+                            <!-- Placar -->
+                            <div class="d-flex align-items-center px-2 px-md-4 py-1 py-md-2 rounded shadow border border-secondary bg-secondary mx-1 mx-md-2">
+                                <h1 class="m-0 fw-bold text-white d-md-none h3">{{ golsA }}</h1>
+                                <h1 class="m-0 fw-bold text-white d-none d-md-block display-3">{{ golsA }}</h1>
+                                <span class="mx-1 mx-md-3 text-white-50 h4 m-0">x</span>
+                                <h1 class="m-0 fw-bold text-white d-md-none h3">{{ golsB }}</h1>
+                                <h1 class="m-0 fw-bold text-white d-none d-md-block display-3">{{ golsB }}</h1>
+                            </div>
 
-                        <!-- Time B -->
-                        <div class="text-center mx-2 mx-md-4" style="width: 120px;">
-                            <div class="position-relative d-inline-block">
-                                <img :src="timeB.escudo" class="mb-2 d-block mx-auto img-fluid escudo-time" />
-                                <div v-if="uniformeB" class="uniforme-mini" 
-                                     :style="{ backgroundColor: uniformeB.interno, borderColor: uniformeB.externo, width: '25px', height: '25px', borderWidth: '4px' }">
+                            <!-- Time B -->
+                            <div class="text-center mx-1 mx-md-4" style="width: 100px;">
+                                <div class="position-relative d-inline-block">
+                                    <img :src="timeB.escudo" class="mb-1 d-block mx-auto img-fluid escudo-time" />
+                                    <div v-if="uniformeB" class="uniforme-mini" 
+                                         :style="{ backgroundColor: uniformeB.interno, borderColor: uniformeB.externo, width: '20px', height: '20px', borderWidth: '3px' }">
+                                    </div>
                                 </div>
+                                <div class="fw-bold text-truncate mt-1 d-block small mb-0">{{ timeB.nome }}</div>
                             </div>
-                            <div class="fw-bold text-truncate mt-1 d-block h6 mb-0">{{ timeB.nome }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Footer (Data e Estrelas) -->
+                    <div class="d-flex justify-content-center align-items-center gap-2 gap-md-4">
+                        <BFormGroup label-cols="auto" class="mb-0 text-white-50">
+                            <BFormInput type="datetime-local" :model-value="dataHora" size="sm" 
+                                class="bg-secondary text-white border-secondary date-input-mobile" 
+                                @update:model-value="$emit('update:dataHora', $event)" 
+                                @change="$emit('salvar')" />
+                        </BFormGroup>
+
+                        <div class="d-flex align-items-center gap-1" title="Avalie a qualidade do jogo">
+                            <span 
+                                v-for="i in 5" :key="i"
+                                class="star-icon fs-5 cursor-pointer"
+                                :class="i <= (nota || 0) ? 'text-warning' : 'text-secondary opacity-25'"
+                                @click="setNota(i)"
+                            >
+                                ★
+                            </span>
                         </div>
                     </div>
                 </div>
-
-                <!-- Footer (Data e Estrelas) -->
-                <div class="d-flex justify-content-center align-items-center gap-4">
-                    <BFormGroup label-cols="auto" class="mb-0 text-white-50">
-                        <BFormInput type="datetime-local" :model-value="dataHora" size="sm" 
-                            class="bg-secondary text-white border-secondary" 
-                            @update:model-value="$emit('update:dataHora', $event)" 
-                            @change="$emit('salvar')" />
-                    </BFormGroup>
-
-                    <div class="d-flex align-items-center gap-1" title="Avalie a qualidade do jogo">
-                        <span 
-                            v-for="i in 5" :key="i"
-                            class="star-icon fs-5 cursor-pointer"
-                            :class="i <= (nota || 0) ? 'text-warning' : 'text-secondary opacity-25'"
-                            @click="setNota(i)"
-                        >
-                            ★
-                        </span>
-                    </div>
-                </div>
                 
-                <!-- CRONÔMETRO (Absoluto à Direita - Centralizado Verticalmente no Container Total) -->
-                <div class="position-absolute end-0 top-50 translate-middle-y me-1 me-md-3 border border-secondary rounded p-2 bg-black d-flex flex-column align-items-center shadow-lg" 
-                     style="z-index: 10; min-width: 250px;">
-                    
-                    <!-- Tempo -->
-                    <div class="fw-bold text-monospace mb-1" 
-                         :class="{'text-success': statusCronometro === 'RODANDO', 'text-danger': statusCronometro === 'ENCERRADO', 'text-white': statusCronometro === 'PARADO'}"
-                         style="font-family: 'Courier New', monospace; letter-spacing: 2px; font-size: 4rem; line-height: 1;">
-                        {{ tempoFormatado }}
-                    </div>
-                    
-                    <!-- Controles -->
-                    <div class="d-flex gap-2 mb-2 w-100 justify-content-center">
-                         <BButton v-if="statusCronometro === 'RODANDO'" variant="warning" size="lg" class="flex-grow-1 fw-bold py-3" @click="$emit('pausar')">
-                            ⏸️
-                         </BButton>
-                         <BButton v-else variant="success" size="lg" class="flex-grow-1 fw-bold py-3" :disabled="tempoRestante <= 0" @click="$emit('iniciar')">
-                            ▶️
-                         </BButton>
-                         
-                         <BButton variant="outline-secondary" size="lg" class="py-3 px-3" @click="$emit('resetar')" title="Reiniciar">
-                            🔄
-                         </BButton>
-                    </div>
+                <!-- CRONÔMETRO (Barra no Mobile/Tablet Landscape, Lateral no Desktop LG+) -->
+                <div class="crono-wrapper order-2 shadow-lg border-top border-lg-top-0 border-lg-start border-secondary">
+                    <div class="p-2 p-md-3 bg-black h-100 d-flex flex-row flex-lg-column align-items-center justify-content-between justify-content-lg-center gap-2">
+                        
+                        <!-- Tempo -->
+                        <div class="fw-bold text-monospace tempo-display" 
+                             :class="{'text-success': statusCronometro === 'RODANDO', 'text-danger': statusCronometro === 'ENCERRADO', 'text-white': statusCronometro === 'PARADO'}"
+                             style="font-family: 'Courier New', monospace; letter-spacing: 2px;">
+                            {{ tempoFormatado }}
+                        </div>
+                        
+                        <!-- Controles Group -->
+                        <div class="flex-grow-1 d-flex flex-column gap-1 w-100 btn-crono-group">
+                            <div class="d-flex gap-1 w-100">
+                                 <BButton v-if="statusCronometro === 'RODANDO'" variant="warning" size="sm" class="flex-grow-1 fw-bold main-btn" @click="$emit('pausar')">
+                                    ⏸️
+                                 </BButton>
+                                 <BButton v-else variant="success" size="sm" class="flex-grow-1 fw-bold main-btn" :disabled="tempoRestante <= 0" @click="$emit('iniciar')">
+                                    ▶️
+                                 </BButton>
+                                 
+                                 <BButton variant="outline-secondary" size="sm" class="px-2" @click="$emit('resetar')" title="Reiniciar">
+                                    🔄
+                                 </BButton>
+                            </div>
 
-                    <!-- Ajuste Fino -->
-                    <div class="d-flex gap-2 mb-2 w-100">
-                        <BButton variant="dark" size="sm" class="flex-grow-1 border-secondary" @click="$emit('ajustarSegundos', -10)">
-                            - 10s
-                        </BButton>
-                        <BButton variant="dark" size="sm" class="flex-grow-1 border-secondary" @click="$emit('ajustarSegundos', 10)">
-                            + 10s
-                        </BButton>
-                    </div>
+                            <!-- Atalhos Rápidos e Editar (Sempre visíveis, mas compactos) -->
+                            <div class="d-flex gap-1 w-100">
+                                <BButton variant="dark" size="sm" class="flex-grow-1 border-secondary" @click="$emit('ajustarSegundos', -10)">- 10s</BButton>
+                                <BButton variant="dark" size="sm" class="flex-grow-1 border-secondary" @click="$emit('ajustarSegundos', 10)">+ 10s</BButton>
+                            </div>
+                            <BButton variant="dark" size="sm" class="text-muted w-100 border-secondary py-1" style="font-size: 0.70rem;" @click="$emit('editarTempo')">
+                                 ⏱️ EDITAR
+                            </BButton>
+                        </div>
 
-                    <BButton variant="dark" size="sm" class="text-muted w-100 border-secondary py-1" style="font-size: 0.85rem;" @click="$emit('editarTempo')">
-                         ⏱️ EDITAR TEMPO
-                    </BButton>
+                    </div>
                 </div>
 
             </div>
@@ -145,7 +146,8 @@ export default {
                 { key: 'TIMELINE', label: '⏱️ Lances' },
                 { key: 'ESCALACAO', label: '📋 Escalação' },
                 { key: 'SUBS', label: '🔄 Subs' },
-                { key: 'UNIFORMES', label: '👕 Uniformes' }
+                { key: 'UNIFORMES', label: '👕 Uniformes' },
+                { key: 'FORMACAO', label: '📐 Formação' }
             ]
         }
     },
@@ -181,12 +183,59 @@ export default {
     transform: scale(1.3);
 }
 .cursor-pointer { cursor: pointer; }
-.escudo-time {
-    height: 60px;
-}
 @media (min-width: 768px) {
     .escudo-time {
         height: 80px;
+    }
+}
+
+/* NOVO LAYOUT CRONÔMETRO */
+.crono-wrapper {
+    background-color: #000;
+    width: 100%;
+}
+
+.tempo-display {
+    font-size: 2.2rem;
+    line-height: 1;
+}
+
+.main-btn {
+    min-height: 45px;
+}
+
+.date-input-mobile {
+    max-width: 150px;
+}
+
+@media (min-width: 992px) {
+    .crono-wrapper {
+        width: 250px;
+    }
+    .tempo-display {
+        font-size: 4rem;
+    }
+    .main-btn {
+        min-height: 60px;
+    }
+    .date-input-mobile {
+        max-width: 100%;
+    }
+    .border-lg-start {
+        border-left: 1px solid #dee2e6 !important;
+    }
+    .border-lg-top-0 {
+        border-top: 0 !important;
+    }
+}
+
+/* Ajustes finos de botões no mobile-tablet */
+@media (max-width: 991px) {
+    .btn-crono-group {
+        max-width: 240px;
+    }
+    .crono-wrapper {
+        border-top: 2px solid #444;
     }
 }
 </style>

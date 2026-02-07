@@ -1057,11 +1057,23 @@ if (paginaSalva !== null) {
             if (!jogo.eventos || jogo.eventos.length === 0) return [];
             const eventosGol = jogo.eventos.filter(e => e.tipo === 'GOL' && e.timeId === timeId);
             return eventosGol.map(evento => {
-                if (evento.jogador && evento.jogador.nome) return evento.jogador.nome;
-                const timeCompleto = this.campeonato.timesParticipantes.find(t => t.id === timeId);
-                if (!timeCompleto) return 'Desconhecido';
-                const jogador = timeCompleto.jogadores.find(j => (j.id || j.numero) == evento.jogadorId);
-                return jogador ? jogador.nome : 'Desconhecido';
+                let nome = 'Desconhecido';
+                let numero = evento.jogadorId;
+
+                if (evento.jogador && evento.jogador.nome) {
+                    nome = evento.jogador.nome;
+                    numero = evento.jogador.numero || evento.jogador.id || evento.jogadorId;
+                } else {
+                    const timeCompleto = this.campeonato.timesParticipantes.find(t => t.id === timeId);
+                    if (timeCompleto) {
+                        const jogador = timeCompleto.jogadores.find(j => (j.id || j.numero) == evento.jogadorId);
+                        if (jogador) {
+                            nome = jogador.nome;
+                            numero = jogador.numero || jogador.id;
+                        }
+                    }
+                }
+                return `Nº ${numero} - ${nome}`;
             });
         },
         irParaSumula(jogo) {

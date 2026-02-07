@@ -113,7 +113,9 @@
                   @click="removerCor(index)"
                 ></button>
 
-                <div class="mb-2 fw-bold small text-muted">Opção {{ index + 1 }}</div>
+                <div class="mb-2 fw-bold small text-muted">
+                  {{ index === 0 ? '🏠 Uniforme 1 (CASA)' : (index === 1 ? '🚌 Uniforme 2 (FORA)' : '👕 Opção ' + (index + 1)) }}
+                </div>
 
                 <div 
                   class="color-badge mb-2"
@@ -124,7 +126,7 @@
                   title="Externo (Borda) / Interno (Centro)"
                 ></div>
 
-                <div class="d-flex gap-1">
+                <div class="d-flex gap-1 justify-content-center mb-2">
                   <div class="text-center">
                     <input type="color" class="form-control form-control-color form-control-sm" v-model="esquema.externo" title="Cor Externa (Anel)">
                     <span class="d-block" style="font-size: 0.6rem;">Externo</span>
@@ -132,6 +134,14 @@
                   <div class="text-center">
                     <input type="color" class="form-control form-control-color form-control-sm" v-model="esquema.interno" title="Cor Interna (Miolo)">
                     <span class="d-block" style="font-size: 0.6rem;">Interno</span>
+                  </div>
+                </div>
+
+                <!-- Campo para a Arte do Botão -->
+                <div class="w-100 mt-1">
+                  <BFormInput v-model="esquema.arte" size="sm" placeholder="URL da Arte (PNG/JPG)" class="mb-1" style="font-size: 0.7rem;" />
+                  <div v-if="esquema.arte" class="text-center">
+                    <img :src="esquema.arte" style="width: 30px; height: 30px; object-fit: cover; border-radius: 50%;" />
                   </div>
                 </div>
               </div>

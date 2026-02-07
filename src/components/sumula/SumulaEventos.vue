@@ -9,6 +9,8 @@
             <div class="d-flex justify-content-center gap-2">
                 <BButton :variant="ferramentaAtiva === 'GOL' ? 'success' : 'outline-success'" @click="alternar('GOL')">⚽
                     Gol</BButton>
+                <BButton :variant="ferramentaAtiva === 'AZUL' ? 'info' : 'outline-info'"
+                    @click="alternar('AZUL')">🟦 Azul</BButton>
                 <BButton :variant="ferramentaAtiva === 'AMARELO' ? 'warning' : 'outline-warning'"
                     @click="alternar('AMARELO')">🟨 Amarelo</BButton>
                 <BButton :variant="ferramentaAtiva === 'VERMELHO' ? 'danger' : 'outline-danger'"
@@ -16,13 +18,22 @@
                 <BButton :variant="ferramentaAtiva === 'CRAQUE' ? 'primary' : 'outline-primary'"
                     @click="alternar('CRAQUE')">⭐ Craque</BButton>
                 <BButton
-    size="sm"
-    variant="outline-light"
-    class="ms-1"
-    @click="$emit('simular')"
->
-    🎲 SIMULAR
-</BButton>
+                    size="sm"
+                    variant="outline-light"
+                    class="ms-1"
+                    @click="$emit('simular')"
+                >
+                    🎲 SIMULAR
+                </BButton>
+
+                <BButton v-if="jogo.fase && !jogo.grupo && golsA === golsB"
+                    size="sm"
+                    variant="outline-warning"
+                    class="ms-1"
+                    @click="$emit('simularPenaltis')"
+                >
+                    ⚽ SIMULAR PÊNALTIS?
+                </BButton>
 
 
 
@@ -50,6 +61,7 @@
 
                         <div class="d-flex gap-1 event-icons">
                             <span v-for="ev in getEventos(jogador, timeA.id, 'GOL')" :key="ev.id">⚽</span>
+                            <span v-for="ev in getEventos(jogador, timeA.id, 'AZUL')" :key="ev.id">🟦</span>
                             <span v-for="ev in getEventos(jogador, timeA.id, 'AMARELO')" :key="ev.id">🟨</span>
                             <span v-for="ev in getEventos(jogador, timeA.id, 'VERMELHO')" :key="ev.id">🟥</span>
                         </div>
@@ -77,6 +89,7 @@
 
                         <div class="d-flex gap-1 event-icons">
                             <span v-for="ev in getEventos(jogador, timeB.id, 'GOL')" :key="ev.id">⚽</span>
+                            <span v-for="ev in getEventos(jogador, timeB.id, 'AZUL')" :key="ev.id">🟦</span>
                             <span v-for="ev in getEventos(jogador, timeB.id, 'AMARELO')" :key="ev.id">🟨</span>
                             <span v-for="ev in getEventos(jogador, timeB.id, 'VERMELHO')" :key="ev.id">🟥</span>
                         </div>
@@ -92,8 +105,8 @@ import { BButton, BRow, BCol } from 'bootstrap-vue-next';
 
 export default {
     components: { BButton, BRow, BCol },
-    props: ['timeA', 'timeB', 'elencoA', 'elencoB', 'titularesA', 'titularesB', 'ferramentaAtiva', 'jogo'],
-    emits: ['update:ferramentaAtiva', 'aplicar'],
+    props: ['timeA', 'timeB', 'elencoA', 'elencoB', 'titularesA', 'titularesB', 'ferramentaAtiva', 'jogo', 'golsA', 'golsB'],
+    emits: ['update:ferramentaAtiva', 'aplicar', 'simular', 'simularPenaltis'],
     methods: {
         getId(j) { return j.id || j.numero },
         alternar(tool) {
