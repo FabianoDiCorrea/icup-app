@@ -1,4 +1,4 @@
-# ⚽ My Champs - Football Manager System
+# ⚽ iCup - Football Manager System
 
 Bem-vindo ao **My Champs**, o sistema de gestão esportiva que aposenta suas planilhas de Excel.
 
