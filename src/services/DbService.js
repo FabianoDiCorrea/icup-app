@@ -18,7 +18,9 @@ localforage.config({
 // ATENÇÃO: Removemos a lista_jogos para forçar o armazenamento embutido
 const KEYS = {
     TIMES: 'lista_times',
-    CAMPEONATOS: 'lista_campeonatos'
+    CAMPEONATOS: 'lista_campeonatos',
+    TECNICOS: 'lista_tecnicos',
+    HISTORICO: 'lista_historico'
 };
 
 export default {
@@ -67,6 +69,36 @@ export default {
     },
 
     // =================================================================
+    // MÉTODOS PARA TÉCNICOS
+    // =================================================================
+
+    async getTecnicos() {
+        const tecnicos = await localforage.getItem(KEYS.TECNICOS);
+        return tecnicos || [];
+    },
+
+    async salvarTecnicos(lista) {
+        return await localforage.setItem(KEYS.TECNICOS, JSON.parse(JSON.stringify(lista)));
+    },
+
+    async adicionarTecnico(novoTecnico) {
+        const tecnicos = await this.getTecnicos();
+        const t = {
+            ...novoTecnico,
+            id: Date.now() + Math.random().toString(36).substr(2, 5)
+        };
+        tecnicos.push(t);
+        await this.salvarTecnicos(tecnicos);
+        return t;
+    },
+
+    async removerTecnico(id) {
+        const tecnicos = await this.getTecnicos();
+        const filtrados = tecnicos.filter(t => t.id !== id);
+        return await this.salvarTecnicos(filtrados);
+    },
+
+    // =================================================================
     // MÉTODOS PARA CAMPEONATOS (JOGOS EMBUTIDOS)
     // =================================================================
 
@@ -79,6 +111,32 @@ export default {
         const camps = await localforage.getItem(KEYS.CAMPEONATOS) || [];
         const filtrados = camps.filter(c => String(c.id) !== String(id));
         await localforage.setItem(KEYS.CAMPEONATOS, filtrados);
+
+        // 🔥 CASCATA: Remove também do Histórico
+        await this.excluirHistoricoPorCampeonatoId(id);
+    },
+
+    async excluirHistoricoPorCampeonatoId(idCampeonato) {
+        const hist = await this.getHistorico();
+        const filtrados = hist.filter(h => String(h.idCampeonato) !== String(idCampeonato));
+        await localforage.setItem(KEYS.HISTORICO, filtrados);
+    },
+
+    // 🧹 Limpa históricos de campeonatos que já foram excluídos
+    // Útil para corrigir dados antigos
+    async limparHistoricosOrfaos() {
+        const camps = await this.getCampeonatos();
+        const hist = await this.getHistorico();
+
+        const idsExistentes = new Set(camps.map(c => String(c.id)));
+
+        const histLimpo = hist.filter(h => idsExistentes.has(String(h.idCampeonato)));
+
+        if (hist.length !== histLimpo.length) {
+            await localforage.setItem(KEYS.HISTORICO, histLimpo);
+            return true;
+        }
+        return false;
     },
 
 
@@ -104,7 +162,14 @@ export default {
             tabelaJogos = dadosBasicos.jogos;
         } else {
             // Caso contrário (Pontos Corridos padrão), gera aqui.
-            tabelaJogos = gerarJogosPontosCorridos(dadosBasicos.times, dadosBasicos.turnos);
+            // BUG FIX: O front-end envia 'timesParticipantes'. O gerador espera 'times'.
+            const timesParaGerar = dadosBasicos.times || dadosBasicos.timesParticipantes;
+
+            if (!timesParaGerar || timesParaGerar.length < 2) {
+                throw new Error("Não é possível gerar jogos com menos de 2 times.");
+            }
+
+            tabelaJogos = gerarJogosPontosCorridos(timesParaGerar, dadosBasicos.turnos);
         }
 
         // 2. Vincula ID (apenas por segurança)
@@ -135,6 +200,8 @@ export default {
                     : null,
 
             adicionarNacionalidade: dadosBasicos.adicionarNacionalidade === true,
+
+            urlTrofeu: dadosBasicos.urlTrofeu || null,
 
             grupos: dadosBasicos.tipo === 'GRUPOS'
                 ? dadosBasicos.grupos || []
@@ -276,6 +343,28 @@ export default {
 
     async resetarBanco() {
         await localforage.clear();
+    },
+
+    // =================================================================
+    // MÉTODOS PARA HISTÓRICO
+    // =================================================================
+
+    async getHistorico() {
+        const hist = await localforage.getItem(KEYS.HISTORICO);
+        return hist || [];
+    },
+
+    async adicionarAoHistorico(item) {
+        const hist = await this.getHistorico();
+
+        // Limpeza profunda para remover Proxies do Vue 3 e garantir serialização (evita DataCloneError)
+        const itemLimpo = JSON.parse(JSON.stringify({
+            ...item,
+            dataRegistro: new Date().toISOString()
+        }));
+
+        hist.push(itemLimpo);
+        return await localforage.setItem(KEYS.HISTORICO, hist);
     },
 
     async exportarBackup() {

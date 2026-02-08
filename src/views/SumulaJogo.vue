@@ -397,8 +397,13 @@ export default {
     this.jogo.eventos = this.jogo.eventos.filter(e => e.tipo !== 'GOL');
 
     // jogadores válidos (exceto camisa 1)
-    const jogadoresA = this.elencoA.filter(j => j.numero !== 1);
-    const jogadoresB = this.elencoB.filter(j => j.numero !== 1);
+    let jogadoresA = this.elencoA.filter(j => j.numero !== 1);
+    if (jogadoresA.length === 0) jogadoresA = this.elencoA; // Fallback: usa goleiro se só tiver ele
+    if (jogadoresA.length === 0) jogadoresA = [{ id: 'aut', numero: '-', nome: 'Desconhecido' }]; // Fallback final
+
+    let jogadoresB = this.elencoB.filter(j => j.numero !== 1);
+    if (jogadoresB.length === 0) jogadoresB = this.elencoB;
+    if (jogadoresB.length === 0) jogadoresB = [{ id: 'aut', numero: '-', nome: 'Desconhecido' }];
 
     // sorteio de gols (0 a 3)
     const golsA = Math.floor(Math.random() * 4);

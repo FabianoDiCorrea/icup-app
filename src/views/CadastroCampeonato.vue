@@ -12,6 +12,22 @@
             </BFormGroup>
           </BCol>
           <BCol md="6">
+            <BFormGroup label="Link da Imagem do Troféu (opcional):" label-for="trofeu-camp" class="text-white-50">
+              <BInputGroup>
+                <BFormInput id="trofeu-camp" v-model="campeonato.urlTrofeu" placeholder="https://.../trofeu.png"
+                  class="bg-secondary text-white border-secondary" />
+                <template #append v-if="campeonato.urlTrofeu">
+                  <div class="ms-2 border border-secondary rounded overflow-hidden d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                    <img :src="campeonato.urlTrofeu" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+                  </div>
+                </template>
+              </BInputGroup>
+            </BFormGroup>
+          </BCol>
+        </BRow>
+
+        <BRow class="mb-3">
+          <BCol md="12">
             <BFormGroup label="Tipo de Campeonato:" label-for="tipo-camp" class="text-white-50">
               <BFormSelect id="tipo-camp" v-model="campeonato.tipo" @change="resetarConfiguracoesEspecificas"
                 class="bg-secondary text-white border-secondary">
@@ -318,17 +334,17 @@
       <!-- DIREITA -->
       <select
         class="form-select form-select-sm"
-        style="width: 110px"
+        style="width: 130px"
         v-model="time.tecnico"
         @click.stop
       >
         <option value="">---</option>
         <option
           v-for="tecnico in tecnicos"
-          :key="tecnico.apelido"
-          :value="tecnico.apelido"
+          :key="tecnico.id"
+          :value="tecnico.nome"
         >
-          {{ tecnico.apelido }}
+          {{ tecnico.nome }}
         </option>
       </select>
     </div>
@@ -514,6 +530,7 @@ export default {
         turnos: 1,
         tipoClassificacao: 'AUTOMATICA',
         modoDefinicao: 'AUTOMATICO',
+        urlTrofeu: '', // Novo campo
         adicionarNacionalidade: false,
         classificadosParaMataMata: 4, // Valor padrão de classificados (se ativado)
         turnosMataMata: 1,
@@ -617,8 +634,7 @@ export default {
   },
   async mounted() {
     await this.carregarTimes();
-    const salvos = localStorage.getItem("tecnicos");
-    this.tecnicos = salvos ? JSON.parse(salvos) : [];
+    this.tecnicos = await DbService.getTecnicos(); // Usando DbService agora
 
     // Lógica de Edição
     if (this.$route.params.id) {
@@ -939,6 +955,7 @@ const dados = {
   turnos: this.campeonato.turnos,
   tipoClassificacao: this.campeonato.tipoClassificacao,
   modoDefinicao: this.campeonato.modoDefinicao,
+  urlTrofeu: (this.campeonato.urlTrofeu && this.campeonato.urlTrofeu.trim()) ? this.campeonato.urlTrofeu.trim() : null, // Salvando opcionalmente
   status: 'EM_ANDAMENTO',
 
   // ✅ SALVA DE VERDADE
@@ -981,6 +998,13 @@ jogos:
 
 
   timesParticipantes: this.timesSelecionadosObj.map(t => ({
+    ...t,
+    tecnico: t.tecnico || '',
+    pais: t.pais || null
+  })),
+
+  // Retrocompatibilidade
+  times: this.timesSelecionadosObj.map(t => ({
     ...t,
     tecnico: t.tecnico || '',
     pais: t.pais || null
@@ -1037,6 +1061,7 @@ jogos:
         this.campeonato.adicionarNacionalidade = camp.adicionarNacionalidade === true;
         this.campeonato.classificadosParaMataMata = camp.classificadosParaMataMata || 4;
         this.campeonato.ativarMataMataPontosCorridos = !!camp.classificadosParaMataMata;
+        this.campeonato.urlTrofeu = camp.urlTrofeu || ''; // Carregando para edição
 
         // Mapear times selecionados (usa timesParticipantes que é a chave correta do banco)
         const timesDocamp = camp.timesParticipantes || camp.times || [];

@@ -53,6 +53,12 @@
             </li>
 
             <li class="nav-item">
+              <router-link to="/historico" class="nav-link fw-bold text-success" @click="menuAberto = false">
+                🏆 Histórico
+              </router-link>
+            </li>
+
+            <li class="nav-item">
               <router-link to="/novo-campeonato" class="nav-link" @click="menuAberto = false">
                 Criar Torneio
               </router-link>
@@ -130,6 +136,9 @@ export default {
         this.exibirAvisoPorta = true;
       }, 1500);
     }
+
+    // Limpeza de lixo (históricos órfãos)
+    await DbService.limparHistoricosOrfaos();
 
     // (Opcional) Loga o uso de espaço no console para você monitorar
     await DbService.verificarEspaco();

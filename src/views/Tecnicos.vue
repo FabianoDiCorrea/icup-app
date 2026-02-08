@@ -55,8 +55,8 @@
         </div>
 
         <div
-          v-for="(t, index) in tecnicos"
-          :key="index"
+          v-for="t in tecnicos"
+          :key="t.id"
           class="bg-secondary bg-opacity-50 p-2 mb-2 rounded d-flex justify-content-between align-items-center"
         >
           <span>
@@ -65,7 +65,7 @@
 
           <button
             class="btn btn-sm btn-danger fw-bold"
-            @click="remover(index)"
+            @click="remover(t.id)"
           >
             Excluir
           </button>
@@ -78,6 +78,8 @@
 </template>
 
 <script>
+import DbService from '../services/DbService.js';
+
 export default {
   name: "Tecnicos",
 
@@ -91,32 +93,52 @@ export default {
     };
   },
 
-  mounted() {
-    const salvos = localStorage.getItem("tecnicos");
-    this.tecnicos = salvos ? JSON.parse(salvos) : [];
+  async mounted() {
+    // 1. Migrar do localStorage se necessário
+    const salvosOld = localStorage.getItem("tecnicos");
+    if (salvosOld) {
+      try {
+        const listaOld = JSON.parse(salvosOld);
+        if (listaOld.length > 0) {
+          // Garante que todos tenham ID
+          const migrados = listaOld.map(t => ({
+            ...t,
+            id: t.id || (Date.now() + Math.random().toString(36).substr(2, 5))
+          }));
+          await DbService.salvarTecnicos(migrados);
+        }
+        localStorage.removeItem("tecnicos");
+      } catch (e) {
+        console.error("Erro na migração de técnicos:", e);
+      }
+    }
+
+    // 2. Carregar do DbService
+    this.carregar();
   },
 
   methods: {
-    salvar() {
-      localStorage.setItem("tecnicos", JSON.stringify(this.tecnicos));
+    async carregar() {
+      this.tecnicos = await DbService.getTecnicos();
     },
 
-    adicionar() {
+    async adicionar() {
       if (!this.novo.nome.trim() || !this.novo.apelido.trim()) return;
 
-      this.tecnicos.push({
+      await DbService.adicionarTecnico({
         nome: this.novo.nome.trim(),
         apelido: this.novo.apelido.trim().toUpperCase()
       });
 
       this.novo.nome = "";
       this.novo.apelido = "";
-      this.salvar();
+      await this.carregar();
     },
 
-    remover(index) {
-      this.tecnicos.splice(index, 1);
-      this.salvar();
+    async remover(id) {
+      if (!confirm("Remover este técnico?")) return;
+      await DbService.removerTecnico(id);
+      await this.carregar();
     }
   }
 };

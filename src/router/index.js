@@ -47,6 +47,11 @@ const routes = [
     component: EditarTime
   },
   {
+    path: '/historico-confrontos/:idTime',
+    name: 'HistoricoConfrontos',
+    component: () => import('../views/HistoricoConfrontos.vue')
+  },
+  {
     path: '/novo-campeonato',
     name: 'CadastroCampeonato',
     component: CadastroCampeonato
@@ -101,6 +106,17 @@ const routes = [
     path: '/campeonato/:id/imprimir',
     name: 'RelatorioImpressao',
     component: RelatorioImpressao
+  },
+  {
+    path: '/historico',
+    name: 'HistoricoGeral',
+    component: () => import('../views/HistoricoGeral.vue')
+  },
+  {
+    path: '/dashboard/time/:id',
+    name: 'DashboardTime',
+    component: () => import('../views/DashboardTime.vue'),
+    props: true
   },
   {
     path: '/about',

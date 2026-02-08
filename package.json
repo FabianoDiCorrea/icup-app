@@ -1,12 +1,13 @@
 {
   "name": "icup",
-  "version": "1.0.3-estavel",
+  "version": "1.0.4",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build"
   },
   "dependencies": {
+    "apexcharts": "^5.3.6",
     "bootstrap": "^5.3.8",
     "bootstrap-vue-next": "^0.42.0",
     "core-js": "^3.8.3",
@@ -16,6 +17,7 @@
     "vue": "^3.2.13",
     "vue-gtag-next": "^1.14.0",
     "vue-router": "^4.0.3",
+    "vue3-apexcharts": "^1.10.0",
     "vuex": "^4.0.0"
   },
   "devDependencies": {

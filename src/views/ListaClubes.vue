@@ -50,84 +50,131 @@
       </div>
 
       <div v-else>
-        <BTableSimple hover responsive align="middle">
-  <BThead>
-    <BTr>
-      <BTh>Escudo</BTh>
-      <BTh>Nome</BTh>
-      <BTh>País</BTh>
-      <BTh class="text-end">Ações</BTh>
-    </BTr>
-  </BThead>
+        <!-- MOBILE VIEW: CARDS -->
+        <div class="d-md-none">
+           <div v-for="time in timesPaginados" :key="time.id" class="card bg-white border shadow-sm mb-3">
+              <div class="card-body p-3">
+                 <div class="d-flex align-items-center gap-3 mb-3">
+                    <img :src="time.escudo" style="width: 50px; height: 50px; object-fit: contain;" @error="$event.target.style.display='none'" />
+                    <div>
+                       <h5 class="card-title mb-0 fw-bold">
+                          <router-link :to="`/dashboard/time/${time.id}`" class="text-decoration-none text-dark stretched-link">
+                             {{ time.nome }}
+                          </router-link>
+                       </h5>
+                       <small class="text-muted text-uppercase">{{ time.pais || 'Sem País' }}</small>
+                    </div>
+                 </div>
+                 <div class="d-grid gap-2" style="position: relative; z-index: 2;">
+                    <BButton variant="primary" size="sm" @click="$router.push(`/dashboard/time/${time.id}`)">
+                       🏆 Ver Perfil
+                    </BButton>
+                    <div class="d-flex gap-2">
+                       <BButton variant="outline-secondary" size="sm" class="flex-grow-1" @click="$router.push(`/editar-clube/${time.id}`)">
+                          Editar
+                       </BButton>
+                       <BButton variant="outline-primary" size="sm" class="flex-grow-1" @click="verDetalhes(time)">
+                          Elenco
+                       </BButton>
+                       <BButton variant="outline-danger" size="sm" class="flex-grow-1" @click="excluirTime(time)">
+                          Excluir
+                       </BButton>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        </div>
 
-  <BTbody>
-    <BTr
-      v-for="time in timesPaginados"
-      :key="time.id"
-    >
-      <BTd style="width: 80px;">
-        <img
-          :src="time.escudo"
-          :alt="time.nome"
-          style="width: 50px; height: 50px; object-fit: contain;"
-          @error="$event.target.style.display='none'"
-        />
-      </BTd>
-
-      <BTd class="fw-bold">
-        {{ time.nome }}
-      </BTd>
-
-      <BTd>
-        <span class="text-muted text-uppercase">
-          {{ time.pais || '-' }}
-        </span>
-      </BTd>
-
-      <BTd class="text-end">
-        <BButton
-          size="sm"
-          variant="outline-secondary"
-          class="me-2"
-          @click="$router.push(`/editar-clube/${time.id}`)"
-        >
-          Editar
-        </BButton>
-
-        <BButton
-          size="sm"
-          variant="outline-primary"
-          @click="verDetalhes(time)"
-        >
-          Ver Elenco
-        </BButton>
-
-        <BButton
-          size="sm"
-          variant="outline-danger"
-          class="ms-2"
-          @click="excluirTime(time)"
-        >
-          Excluir
-        </BButton>
-      </BTd>
-    </BTr>
-  </BTbody>
-</BTableSimple>
-
+        <!-- DESKTOP VIEW: TABLE -->
+        <div class="d-none d-md-block">
+         <BTableSimple hover responsive align="middle">
+           <BThead>
+             <BTr>
+               <BTh>Escudo</BTh>
+               <BTh>Nome</BTh>
+               <BTh>País</BTh>
+               <BTh class="text-end">Ações</BTh>
+             </BTr>
+           </BThead>
+         
+           <BTbody>
+             <BTr
+               v-for="time in timesPaginados"
+               :key="time.id"
+             >
+               <BTd style="width: 80px;">
+                 <img
+                   :src="time.escudo"
+                   :alt="time.nome"
+                   style="width: 50px; height: 50px; object-fit: contain;"
+                   @error="$event.target.style.display='none'"
+                 />
+               </BTd>
+         
+               <BTd class="fw-bold">
+                 <router-link :to="`/dashboard/time/${time.id}`" class="text-decoration-none text-primary">
+                   {{ time.nome }}
+                 </router-link>
+               </BTd>
+         
+               <BTd>
+                 <span class="text-muted text-uppercase">
+                   {{ time.pais || '-' }}
+                 </span>
+               </BTd>
+         
+               <BTd class="text-end">
+                 <BButton
+                   size="sm"
+                   variant="primary"
+                   class="me-2"
+                   @click="$router.push(`/dashboard/time/${time.id}`)"
+                 >
+                   Perfil 🏆
+                 </BButton>
+         
+                 <BButton
+                   size="sm"
+                   variant="outline-secondary"
+                   class="me-2"
+                   @click="$router.push(`/editar-clube/${time.id}`)"
+                 >
+                   Editar
+                 </BButton>
+         
+                 <BButton
+                   size="sm"
+                   variant="outline-primary"
+                   @click="verDetalhes(time)"
+                 >
+                   Ver Elenco
+                 </BButton>
+         
+                 <BButton
+                   size="sm"
+                   variant="outline-danger"
+                   class="ms-2"
+                   @click="excluirTime(time)"
+                 >
+                   Excluir
+                 </BButton>
+               </BTd>
+             </BTr>
+           </BTbody>
+         </BTableSimple>
+        </div>
 
         <div class="d-flex justify-content-center mt-4"
-     v-if="timesFiltrados && timesFiltrados.length > itensPorPagina">
-
-          <BPagination
-            v-model="paginaAtual"
-            :total-rows="timesFiltrados.length"
-            :per-page="itensPorPagina"
-            first-number
-            last-number
-            prev-text="Anterior"
-            next-text="Próxima"
-          />
+             v-if="timesFiltrados && timesFiltrados.length > itensPorPagina">
+           <BPagination
+             v-model="paginaAtual"
+             :total-rows="timesFiltrados.length"
+             :per-page="itensPorPagina"
+             first-number
+             last-number
+             prev-text="Anterior"
+             next-text="Próxima"
+           />
         </div>
       </div>
 

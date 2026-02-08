@@ -68,9 +68,9 @@
     />
 
     <!-- NOME DO TIME -->
-    <span class="fw-bold">
+    <router-link :to="`/dashboard/time/${time.id}`" class="text-decoration-none text-primary fw-bold">
       {{ time.nome }}
-    </span>
+    </router-link>
 
   </div>
 </BTd>
@@ -150,9 +150,9 @@
     />
 
     <!-- NOME DO TIME -->
-    <span class="fw-bold">
+    <router-link :to="`/dashboard/time/${time.id}`" class="text-decoration-none text-primary fw-bold">
       {{ time.nome }}
-    </span>
+    </router-link>
 
   </div>
 </BTd>

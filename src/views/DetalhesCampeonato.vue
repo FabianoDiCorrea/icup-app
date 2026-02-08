@@ -21,6 +21,7 @@
                             <BBadge v-if="campeonato.status === 'ENCERRADO'" variant="dark" class="ms-2 fs-6">🏆
                                 ENCERRADO</BBadge>
                         </h2>
+                        
                         <span class="text-muted small">
                             {{ campeonato.timesParticipantes.length }} Times • {{ totalRodadas }} Rodadas
                         </span>
@@ -80,7 +81,11 @@
             </div>
 
             <BCard class="shadow-sm">
-                <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-3 position-relative">
+                    
+                    <!-- TROFÉU CENTRALIZADO NA FINAL -->
+
+
                     <h4 class="m-0">
   <span v-if="nomeFaseAtual" class="text-success fw-bold">
     {{ nomeFaseAtual }}
@@ -131,6 +136,7 @@
 
                 </div>
                 <hr />
+                
                 <div class="lista-jogos">
                     <div v-if="jogosDaRodada.length === 0" class="text-center text-muted py-3">
                         Nenhum jogo nesta rodada.
@@ -147,7 +153,7 @@
     v-if="getTimeCompleto(jogo.timeA)?.tecnico"
     class="tecnico-label"
   >
-    {{ getTimeCompleto(jogo.timeA).tecnico }}
+    {{ getTimeCompleto(jogo.timeA).tecnico.substring(0,3).toUpperCase() }}
   </span>
 
   <span
@@ -193,6 +199,12 @@
                             </BCol>
                             <BCol cols="4" md="2" class="px-0">
     <div class="d-flex flex-column align-items-center">
+
+        <!-- TROFÉU ALINHADO AO PLACAR (FINAL) -->
+        <div v-if="nomeFaseAtual === 'Final' && campeonato.urlTrofeu" class="mb-2">
+             <img :src="campeonato.urlTrofeu" 
+                  style="height: 70px; width: auto; object-fit: contain; filter: drop-shadow(0 0 10px rgba(255,215,0,0.5));" />
+        </div>
 
         <!-- DISPLAY CRONÔMETRO LISTA -->
         <div v-if="jogo.cronometro && (jogo.cronometro.status !== 'PARADO' || (jogo.cronometro.tempoRestanteSnapshot < (jogo.cronometro.duracaoPartida || 10) * 60))" 
@@ -290,7 +302,7 @@
     v-if="getTimeCompleto(jogo.timeB)?.tecnico"
     class="tecnico-label"
   >
-    {{ getTimeCompleto(jogo.timeB).tecnico }}
+    {{ getTimeCompleto(jogo.timeB).tecnico.substring(0,3).toUpperCase() }}
   </span>
 
 </div>
@@ -331,7 +343,46 @@
                         </BRow>
                     </div>
                 </div>
+
+
             </BCard>
+
+            <!-- ÁREA DO CAMPEÃO (ALINHADO COM O PLACAR) -->
+            <div v-if="timeCampeao" class="row w-100 m-0 mt-4">
+                <div class="col-12 col-md-10 text-center py-5 position-relative overflow-hidden rounded bg-dark border border-warning shadow-lg mx-auto mx-md-0">
+                
+                <!-- Confetes (Efeito Visual CSS) -->
+                <div class="confetti-container">
+                    <div class="confetti" v-for="n in 20" :key="n" :style="getConfettiStyle(n)"></div>
+                </div>
+
+                <div class="position-relative" style="z-index: 2;">
+                    <h5 class="text-uppercase text-warning fw-bold mb-3 ls-2">🏆 CAMPEÃO 🏆</h5>
+
+                    <!-- Troféu -->
+                    <div v-if="campeonato.urlTrofeu" class="mb-3">
+                            <img :src="campeonato.urlTrofeu" 
+                                style="height: 120px; width: auto; object-fit: contain; filter: drop-shadow(0 0 20px rgba(255,215,0,0.8)); animation: floatTrophy 3s ease-in-out infinite;" />
+                    </div>
+
+                    <!-- Escudo e Nome -->
+                    <div class="d-flex flex-column align-items-center justify-content-center">
+                        <img :src="timeCampeao.escudo" class="mb-2" style="width: 80px; height: 80px; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));" />
+                        <h2 class="fw-bold text-white mb-0" style="text-shadow: 0 2px 4px rgba(0,0,0,0.8);">{{ timeCampeao.nome }}</h2>
+                    </div>
+
+                    <!-- Detalhes Extras -->
+                    <div class="d-flex justify-content-center gap-3 mt-3 text-white-50 small text-uppercase fw-bold">
+                        <span v-if="timeCampeao.tecnico">
+                            👔 {{ timeCampeao.tecnico }}
+                        </span>
+                        <span v-if="campeonato.adicionarNacionalidade && timeCampeao.pais">
+                            🌍 {{ timeCampeao.pais }}
+                        </span>
+                    </div>
+                </div>
+                </div>
+            </div>
         </div>
 
         <BModal v-model="modalEncerramentoAberto" title="Definir Classificados" size="lg" hide-footer>
@@ -372,6 +423,7 @@
 
 <script>
 import DbService from '../services/DbService.js';
+import HistoryService from '../services/HistoryService.js';
 import {
     gerarJogosComByeSystem
 } from '../utils/GeradorTabela.js';
@@ -431,6 +483,58 @@ export default {
     ? 'FASE'
     : 'GRUPOS';
 },
+
+    // 🔥 LÓGICA DO CAMPEÃO (Adicionado)
+    timeCampeao() {
+      if (!this.campeonato || this.campeonato.status !== 'ENCERRADO') return null;
+
+      // 1. Mata-Mata ou Grupos+Mata (baseado na FINAL)
+      const temFinal = this.campeonato.jogos.some(j => j.fase === 'Final');
+      
+      if (temFinal) {
+          const jogosFinal = this.campeonato.jogos.filter(j => j.fase === 'Final');
+          if (jogosFinal.length === 0) return null;
+
+          // Encontra o vencedor do confronto da final
+          const confrontoId = jogosFinal[0].confrontoId;
+          
+          let totalA = 0;
+          let totalB = 0;
+          let equipeA = jogosFinal[0].timeA;
+          let equipeB = jogosFinal[0].timeB;
+          let penaltisA = null;
+          let penaltisB = null;
+
+          jogosFinal.forEach(j => {
+              if (j.timeA.id === equipeA.id) {
+                  totalA += (j.golsA || 0);
+                  totalB += (j.golsB || 0);
+                  if (j.penaltisA != null) { penaltisA = j.penaltisA; penaltisB = j.penaltisB; }
+              } else {
+                  totalA += (j.golsB || 0);
+                  totalB += (j.golsA || 0);
+                  if (j.penaltisA != null) { penaltisA = j.penaltisB; penaltisB = j.penaltisA; }
+              }
+          });
+
+          if (totalA > totalB) return this.getTimeCompleto(equipeA);
+          if (totalB > totalA) return this.getTimeCompleto(equipeB);
+          
+          // Pênaltis
+          if (penaltisA !== null && penaltisB !== null) {
+              return penaltisA > penaltisB ? this.getTimeCompleto(equipeA) : this.getTimeCompleto(equipeB);
+          }
+           return null; 
+      }
+
+      // 2. Pontos Corridos Puro
+      if (this.campeonato.tipo === 'PONTOS_CORRIDOS') {
+          const classificados = this.tabelaBase.sort((a, b) => b.pontos - a.pontos);
+          return classificados.length > 0 ? classificados[0] : null;
+      }
+
+      return null;
+    },
 
       temGrupo() {
   if (!this.jogosDaRodada.length) return false;
@@ -1045,10 +1149,23 @@ if (paginaSalva !== null) {
         async encerrarCampeonato() {
             if (!confirm("Deseja declarar este campeonato como ENCERRADO e arquivá-lo?")) return;
             try {
+                this.carregando = true;
+                
+                // 1. Registrar no Histórico
+                await HistoryService.registrarEncerramento(this.campeonato);
+
+                // 2. Atualizar status do campeonato atual
                 this.campeonato.status = 'ENCERRADO';
                 await DbService.atualizarCampeonato(this.campeonato);
-                alert("Campeonato encerrado com sucesso! 🏆");
-            } catch (error) { console.error(error); alert("Erro ao encerrar."); }
+                
+                alert("Campeonato encerrado com sucesso! 🏆 Snapshot salvo no histórico.");
+                // this.$router.push('/lista-campeonatos'); // Removido para manter na tela de campeão
+            } catch (error) { 
+                console.error(error); 
+                alert("Erro ao encerrar."); 
+            } finally {
+                this.carregando = false;
+            }
         },
         ativarEdicaoNome() {
             this.nomeTemp = this.campeonato.nome;
@@ -1074,6 +1191,18 @@ if (paginaSalva !== null) {
             if (!this.campeonato || !this.campeonato.timesParticipantes) return '-';
             const time = this.campeonato.timesParticipantes.find(t => t.id === timeId);
             return time ? time.estadio : 'Estádio Desconhecido';
+        },
+        getConfettiStyle(n) {
+           const delay = Math.random() * 5 + 's';
+           const duration = Math.random() * 3 + 2 + 's'; // 2-5s
+           const left = Math.random() * 100 + '%';
+           const bg = ['#ffd700', '#ff0000', '#ffffff', '#00ff00', '#0000ff'][Math.floor(Math.random() * 5)];
+           return {
+               left: left,
+               animationDelay: delay,
+               animationDuration: duration,
+               backgroundColor: bg
+           };
         },
         getAutoresGols(jogo, timeId) {
             if (!jogo.eventos || jogo.eventos.length === 0) return [];
@@ -1451,11 +1580,9 @@ const novaRodada = ultimaRodada + 1;
                 const ultimaRodadaAntiga = this.totalRodadas;
 
                 if (modoDefinitivo === 'GERAL') {
-                    console.log(`[Gerador] Executando: CLASSIFICAÇÃO GERAL`);
                     const listaFinal = [...timesClassificados, ...timesExtras];
                     await DbService.avancarGruposComSeeding(this.campeonato.id, listaFinal);
                 } else {
-                    console.log(`[Gerador] Executando: CLASSIFICAÇÃO PADRÃO`);
                     const classificadosPorGrupoObj = {};
                     for (const nome in classificacao) {
                         classificadosPorGrupoObj[nome] = classificacao[nome].slice(0, qtdDiretos);
