@@ -14,6 +14,8 @@ import Configuracoes from '@/views/Configuracoes.vue'
 import Sobre from '@/views/Sobre.vue'
 import ComoFunciona from '@/views/ComoFunciona.vue'
 import RelatorioImpressao from '@/views/RelatorioImpressao.vue'
+import DashboardTecnico from '@/views/DashboardTecnico.vue'
+
 
 const routes = [
   {
@@ -108,6 +110,11 @@ const routes = [
     component: RelatorioImpressao
   },
   {
+    path: '/times/:id/trofeus',
+    name: 'SalaTrofeus',
+    component: () => import('../views/SalaTrofeus.vue')
+  },
+  {
     path: '/historico',
     name: 'HistoricoGeral',
     component: () => import('../views/HistoricoGeral.vue')
@@ -118,6 +125,13 @@ const routes = [
     component: () => import('../views/DashboardTime.vue'),
     props: true
   },
+  {
+    path: '/dashboard/tecnico/:nome',
+    name: 'DashboardTecnico',
+    component: DashboardTecnico,
+    props: true
+  },
+
   {
     path: '/about',
     name: 'about',

@@ -31,11 +31,12 @@
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-start mb-3">
                 <div class="d-flex align-items-center gap-3">
-                  <div class="trofeu-container bg-white rounded p-1" v-if="item.urlTrofeu">
-                    <img :src="item.urlTrofeu" style="width: 40px; height: 40px; object-fit: contain;" />
+                  <div class="trofeu-container" v-if="item.urlTrofeu">
+                    <img :src="item.urlTrofeu" style="width: 48px; height: 48px; object-fit: contain; filter: drop-shadow(0 0 5px rgba(255,215,0,0.5));" />
                   </div>
                   <div>
                     <h5 class="card-title text-white mb-0">{{ item.nome }}</h5>
+                    <small class="text-info w-100 d-block mb-1 fw-bold" style="font-size: 0.75rem;">{{ obterNumeroEdicao(item) }}ª Edição</small>
                     <small class="text-muted">{{ formatarData(item.dataFim) }}</small>
                   </div>
                 </div>
@@ -187,6 +188,17 @@ export default {
     getEscudoTime(id) {
         const t = this.timesGeral.find(x => x.id === id);
         return t ? t.escudo : null;
+    },
+    obterNumeroEdicao(item) {
+        if (!item || !this.historico) return 1;
+        // Filtrar campeonatos com o mesmo nome e ordenar por data
+        const mesmoNome = this.historico
+            .filter(h => h.nome === item.nome)
+            .sort((a, b) => new Date(a.dataFim) - new Date(b.dataFim));
+        
+        // Encontrar índice (1-based)
+        const index = mesmoNome.findIndex(h => h.idCampeonato === item.idCampeonato);
+        return index !== -1 ? index + 1 : 1;
     }
   }
 };

@@ -120,17 +120,40 @@ export function gerarJogosMataMata(timesPareados, turnos, nomeFase = 'Fase 1', r
     return jogosGerados;
 }
 
-export function gerarJogosProximaFaseMataMata(vencedores, turnos, rodadaAtualMax) {
+export function gerarJogosProximaFaseMataMata(vencedores, turnos, rodadaAtualMax, perdedores = []) {
     const totalTimes = vencedores.length;
     let nomeNovaFase = '';
+
+    // Identifica a fase
     if (totalTimes === 8) nomeNovaFase = 'Quartas de Final';
     else if (totalTimes === 4) nomeNovaFase = 'Semifinal';
     else if (totalTimes === 2) nomeNovaFase = 'Final';
     else nomeNovaFase = `Fase de ${totalTimes}`;
 
     const novaRodadaInicial = rodadaAtualMax + 1;
-    const novoConfrontoId = Date.now();
-    return gerarJogosMataMata(vencedores, turnos, nomeNovaFase, novaRodadaInicial, novoConfrontoId);
+    let novoConfrontoId = Date.now();
+
+    // Gera os jogos da próxima fase (Vencedores)
+    const jogosVencedores = gerarJogosMataMata(vencedores, turnos, nomeNovaFase, novaRodadaInicial, novoConfrontoId);
+
+    // 🔥 SE FOR FINAL (2 times), VERIFICAR SE TEMOS PERDEDORES PARA O 3º LUGAR
+    // A lógica é: Se estamos gerando a Final (2 times), significa que viemos da Semifinal.
+    // Se recebemos os perdedores da semi, criamos o jogo de 3º lugar.
+    if (totalTimes === 2 && perdedores.length === 2) {
+        novoConfrontoId += 50; // Garante ID diferente
+
+        // Disputa de 3º lugar é sempre jogo único ou segue o padrão da final? 
+        // Vamos assumir jogo único por padrão para não estender o calendário, ou seguir turnos.
+        // O usuário não especificou, mas geralmente decisão de 3º é jogo único. 
+        // Mas para manter consistência com a final, vamos usar 'turnos'.
+
+        const jogo3o = gerarJogosMataMata(perdedores, turnos, 'Disputa 3º Lugar', novaRodadaInicial, novoConfrontoId);
+
+        // Adiciona ao array de jogos
+        jogosVencedores.push(...jogo3o);
+    }
+
+    return jogosVencedores;
 }
 
 // === LÓGICA HÍBRIDA: GRUPOS PARALELOS OU SEEDING GERAL ===

@@ -28,6 +28,13 @@
             </button>
             <button 
               class="nav-link text-start mb-1" 
+              :class="{ active: abaAtiva === 'tecnicos' }" 
+              @click="abaAtiva = 'tecnicos'"
+            >
+              👔 Gestão de Técnicos
+            </button>
+            <button 
+              class="nav-link text-start mb-1" 
               :class="{ active: abaAtiva === 'campeonatos' }" 
               @click="abaAtiva = 'campeonatos'"
             >
@@ -40,12 +47,13 @@
             >
               ⚽ Operando a Partida
             </button>
+            <div class="border-top border-secondary my-2"></div>
             <button 
               class="nav-link text-start mb-1" 
               :class="{ active: abaAtiva === 'dados' }" 
               @click="abaAtiva = 'dados'"
             >
-              💾 Backup e Dados
+              💾 Backup e Segurança
             </button>
           </div>
         </BCol>
@@ -78,11 +86,12 @@
                 O sistema aceita times com qualquer número de atletas.
               </p>
 
-              <h6 class="fw-bold mt-4">2. Uniformes e Cores</h6>
+              <h6 class="fw-bold mt-4">2. Uniformes e Arte da Camisa</h6>
               <p class="text-muted small">
-                Na edição do time, você pode criar "Combinações de Cores" (Kits). 
-                Essas cores aparecem na súmula do jogo para diferenciar os times no placar.
-                Você define uma <strong>Cor Interna</strong> (predominante) e uma <strong>Cor Externa</strong> (borda/detalhe).
+                Na edição do time, você pode criar "Combinações de Cores" (Kits).
+                <br>
+                Além disso, no campo <strong>URL da Camisa</strong>, você pode colar o link de uma imagem (.png) da camisa do time. 
+                Essa imagem aparecerá na visualização de "Formação" antes das partidas.
               </p>
 
               <h6 class="fw-bold mt-4">3. Siglas</h6>
@@ -92,7 +101,7 @@
             </div>
 
             <div v-if="abaAtiva === 'campeonatos'" class="fade-in">
-              <h4 class="text-primary mb-3">Tipos de Campeonato</h4>
+              <h4 class="text-primary mb-3">Formatos de Campeonato</h4>
               
               <div class="d-flex gap-3 mb-4">
                 <div class="border rounded p-3 bg-dark w-100">
@@ -100,48 +109,61 @@
                   <p class="small text-muted mb-0">Tabela tradicional. Todos contra todos (Turno ou Turno/Returno).</p>
                 </div>
                 <div class="border rounded p-3 bg-dark w-100">
-                  <strong>Mata-Mata</strong>
-                  <p class="small text-muted mb-0">Eliminatórias. Você pode sortear ou definir manualmente os confrontos.</p>
+                  <strong>Liga + Mata-Mata</strong>
+                  <p class="small text-muted mb-0">Fase de grupos seguida de eliminatórias (estilo Copa do Mundo ou Champions).</p>
+                </div>
+                <div class="border rounded p-3 bg-dark w-100">
+                  <strong>Mata-Mata Puro</strong>
+                  <p class="small text-muted mb-0">Eliminatórias diretas desde o início. Perdeu, saiu.</p>
                 </div>
               </div>
 
-              <h6 class="fw-bold">Fase de Grupos Interativa</h6>
-              <p class="text-muted small">
-                Ao criar um torneio de grupos, você define quantos times avançam (ex: 2 por grupo).
-                Após finalizar todos os jogos, um botão <strong>"Encerrar Grupos"</strong> aparecerá na tela de detalhes.
-                Isso gerará automaticamente a fase de <strong>Mata-Mata</strong> cruzando os classificados (ex: 1ºA x 2ºB).
-              </p>
+              <h6 class="fw-bold">Funcionalidades Extras</h6>
+              <ul class="list-group list-group-flush small bg-transparent">
+                <li class="list-group-item bg-transparent text-white border-secondary ps-0">
+                  <strong>📄 Clonar Campeonato:</strong> Na lista de campeonatos, use o botão "Clonar" para criar uma cópia idêntica de um torneio existente (útil para criar a "2ª Edição" mantendo os mesmos times).
+                </li>
+                <li class="list-group-item bg-transparent text-white border-secondary ps-0">
+                  <strong>🌍 Exibir País:</strong> Nas configurações do campeonato, você pode escolher se deseja exibir ou ocultar a bandeira do país do time na tabela.
+                </li>
+                <li class="list-group-item bg-transparent text-white border-secondary ps-0">
+                  <strong>✏️ Editar/Configurar:</strong> Use o botão "Configurar" na lista para alterar regras, nome ou times participantes mesmo após o campeonato ter iniciado.
+                </li>
+              </ul>
 
               <h6 class="fw-bold mt-3">Avançando Fases (Mata-Mata)</h6>
               <p class="text-muted small">
-               Quando todos os jogos da fase forem concluídos, o botão <strong>"Encerrar Fase"</strong> será liberado.
-               Se a partida terminar empatada no tempo normal, a aba de <strong>Pênaltis</strong> ficará disponível para preenchimento.
-              Caso os pênaltis não sejam informados, o sistema abrirá um menu para que você escolha manualmente quem avança.
+                Quando todos os jogos da fase forem concluídos, o botão <strong>"Encerrar Fase"</strong> será liberado.
+                Se a partida terminar empatada no tempo normal, a aba de <strong>Pênaltis</strong> ficará disponível para preenchimento.
+               Caso os pênaltis não sejam informados, o sistema abrirá um menu para que você escolha manualmente quem avança.
               </p>
-
             </div>
 
             <div v-if="abaAtiva === 'partidas'" class="fade-in">
               <h4 class="text-primary mb-3">Operando a Partida</h4>
-              <p>A tela de Súmula é o coração do sistema. Ela é dividida em abas:</p>
+              <p>A tela de Súmula é o coração do sistema. Funcionalidades disponíveis:</p>
 
               <ul class="list-group list-group-flush small">
                 <li class="list-group-item">
-                  <strong>📝 Súmula (Lances):</strong> Clique na ação (Gol, Cartão) e depois no jogador. O lance é registrado automaticamente.
+                  <strong>⏱️ Cronômetro:</strong> Um relógio simples para acompanhar o tempo de jogo. Você pode pausar e reiniciar.
                 </li>
                 <li class="list-group-item">
-                  <strong>⏱️ Linha do Tempo:</strong> Mostra a ordem cronológica dos fatos. Se errou um gol, é aqui que você clica na lixeira 🗑️ para remover.
+                  <strong>🤖 Simulação:</strong> Se não quiser jogar, pode usar o botão de "Simular Resultado" para gerar um placar aleatório baseado na força dos times.
                 </li>
                 <li class="list-group-item">
-                  <strong>📋 Escalação:</strong> Marque quem começou jogando. Isso ajuda a calcular estatísticas e substituições.
+                  <strong>🟦 Cartão Azul:</strong> Opção de configurar expulsão temporária (se habilitado nas regras).
                 </li>
                 <li class="list-group-item">
-                  <strong>🔄 Substituições:</strong> Selecione quem sai (deve estar em campo) e quem entra (deve estar no banco). O sistema atualiza visualmente quem está jogando na lista principal.
-                </li>
-                <li class="list-group-item">
-                  <strong>👕 Uniformes:</strong> Escolha qual kit cada time está usando para facilitar a visualização no placar.
+                  <strong>🥅 Pênaltis:</strong> Em jogos de mata-mata que terminam empatados, uma aba extra de "Pênaltis" aparece para definir o vencedor.
                 </li>
               </ul>
+
+              <h6 class="fw-bold mt-4">Na Prática</h6>
+              <p class="text-muted small">
+                <strong>Escalação:</strong> Marque quem começou jogando.
+                <br>
+                <strong>Substituições:</strong> Selecione quem sai (deve estar em campo) e quem entra (deve estar no banco).
+              </p>
             </div>
 
             <div v-if="abaAtiva === 'dados'" class="fade-in">
@@ -159,6 +181,43 @@
                 <strong>Mesclar:</strong> Adiciona os dados do arquivo ao que você já tem (útil para juntar times criados em PCs diferentes).
                 <br>
                 <strong>Substituir:</strong> Apaga tudo o que existe agora e coloca o backup no lugar.
+              </p>
+            </div>
+
+            <div v-if="abaAtiva === 'tecnicos'" class="fade-in">
+              <h4 class="text-primary mb-3">Gestão de Técnicos</h4>
+              <p>O sistema permite que você crie o perfil de treinadores e vincule aos times nos campeonatos.</p>
+
+              <div class="alert alert-warning border-warning bg-opacity-10 text-warning p-3">
+                <strong>⚠️ Ordem Importante:</strong> Cadastre os técnicos <strong>ANTES</strong> de criar os campeonatos.
+              </div>
+
+              <h6 class="fw-bold mt-4">Vinculando ao Time</h6>
+              <p class="text-muted small">
+                Na tela de <strong>Detalhes do Campeonato</strong>, clique no botão de configurações ⚙️ (engrenagem) para editar os participantes.
+                Lá você pode selecionar quem será o técnico de cada equipe naquela competição.
+              </p>
+
+              <h6 class="fw-bold mt-4">Dashboard do Técnico</h6>
+              <p class="text-muted small">
+                Ao clicar no nome de um técnico em qualquer lugar do sistema, você abre o <strong>Dashboard de Carreira</strong>.
+                Lá você vê todo o histórico dele: títulos, jogos, aproveitamento e até contra quem ele mais perdeu.
+              </p>
+            </div>
+
+            <div v-if="abaAtiva === 'historico'" class="fade-in">
+              <h4 class="text-primary mb-3">Histórico e Sala de Troféus</h4>
+              
+              <h6 class="fw-bold mt-4">Histórico Geral 🏆</h6>
+              <p class="text-muted small">
+                Uma linha do tempo com todos os campeões de todas as edições que você já jogou.
+                O sistema agrupa campeonatos com o mesmo nome (ex: "Copa do Brasil") e numera as edições automaticamente (1ª, 2ª, 3ª...).
+              </p>
+
+              <h6 class="fw-bold mt-4">Sala de Troféus do Clube</h6>
+              <p class="text-muted small">
+                Na tela de detalhes de um clube, clique no botão <strong>🏆 Sala de Troféus</strong>.
+                Você verá uma galeria com todas as taças que aquele time levantou, com data e detalhes da campanha.
               </p>
             </div>
 
@@ -191,10 +250,6 @@ export default {
   border-radius: 0;
   border-left: 4px solid transparent;
   transition: all 0.2s;
-}
-
-.nav-pills .nav-link:hover {
-  /* background-color: #e5e7eb; */
 }
 
 .nav-pills .nav-link.active {

@@ -134,32 +134,25 @@
 
           <div v-if="campeonato.tipo === 'GRUPOS'">
             <BRow>
-              <BCol md="3">
+              <BCol md="2">
                 <BFormGroup label="Qtd. de Grupos:" class="text-white">
                   <BFormInput type="number" min="2" max="8" v-model.number="configGrupos.qtdGrupos"
                     @change="recalcularSlotsManuais" class="bg-dark text-white border-secondary" />
                 </BFormGroup>
-                <BCol md="6">
-  <BFormGroup class="text-white">
-    <label class="fw-bold mb-1">
-      Máx. times por técnico
-    </label>
-
-    <BFormInput
-      type="number"
-      min="1"
-      class="bg-dark text-white border-secondary mb-1"
-      v-model.number="configGrupos.maxPorTecnico"
-    />
-
-    <small class="text-muted d-block text-nowrap">
-      Limite de times do mesmo técnico em cada grupo. Se não for possível, o sistema permite repetição.
-    </small>
-  </BFormGroup>
-</BCol>
-
-
-
+              </BCol>
+              
+              <BCol md="3">
+                <BFormGroup class="text-white" label="Máx. times p/ técnico:">
+                  <BFormInput
+                    type="number"
+                    min="1"
+                    class="bg-dark text-white border-secondary mb-1"
+                    v-model.number="configGrupos.maxPorTecnico"
+                  />
+                  <small class="text-muted d-block" style="font-size: 0.7rem;">
+                    Limite por grupo.
+                  </small>
+                </BFormGroup>
               </BCol>
               <BCol md="3">
                 <BFormGroup label="Turnos (Fase de Grupos):" class="text-white">
@@ -272,6 +265,7 @@
   />
 </BFormGroup>
 
+
 <h5 class="text-primary border-bottom border-secondary pb-2 mb-3">
   2. Seleção de Clubes
 </h5>
@@ -286,6 +280,59 @@
     class="bg-dark text-white border-secondary"
   />
 </BInputGroup>
+
+<!-- TOGGLE PARA DISTRIBUIÇÃO - MAIS DISCRETO -->
+<div class="d-flex align-items-center gap-3 mb-3 px-1">
+  <span class="text-white-50 small fw-bold">Deseja distribuir os técnicos automático?</span>
+  <div class="btn-group btn-group-sm shadow-sm">
+    <input type="radio" class="btn-check" name="toggleDist" id="distNao" :value="false" v-model="mostrarDistribuidorTecnicos">
+    <label class="btn btn-outline-secondary px-3" for="distNao">Não</label>
+
+    <input type="radio" class="btn-check" name="toggleDist" id="distSim" :value="true" v-model="mostrarDistribuidorTecnicos">
+    <label class="btn btn-outline-info px-3" for="distSim">Sim</label>
+  </div>
+</div>
+
+<!-- FERRAMENTA DE DISTRIBUIÇÃO - CONDICIONAL -->
+<BCard class="bg-dark text-white border-info mb-4 shadow" v-if="mostrarDistribuidorTecnicos && idsSelecionados.length > 0">
+  <template #header>
+    <div class="d-flex justify-content-between align-items-center">
+      <h6 class="mb-0 text-info fw-bold">🤝 Distribuição Automática de Técnicos</h6>
+      <small class="text-muted">Selecione quem vai jogar e o sistema divide os times entre eles.</small>
+    </div>
+  </template>
+  
+  <BRow class="mb-3">
+    <BCol cols="12">
+      <div class="d-flex flex-wrap gap-2 mb-3 px-2">
+        <div v-for="tec in tecnicos" :key="tec.id" class="form-check form-check-inline bg-secondary bg-opacity-25 px-3 py-1 rounded-pill border border-secondary shadow-sm">
+          <input 
+            class="form-check-input" 
+            type="checkbox" 
+            :id="'checkTec' + tec.id" 
+            :value="tec.nome" 
+            v-model="tecnicosParticipantesIds"
+          >
+          <label class="form-check-label small text-white cursor-pointer mb-0" :for="'checkTec' + tec.id">
+            {{ tec.nome }}
+          </label>
+        </div>
+      </div>
+      <div v-if="tecnicosParticipantesIds.length > 0" class="small text-muted mb-2 px-2">
+        Média: Cada técnico ficará com aprox. <strong>{{ Math.ceil(idsSelecionados.length / tecnicosParticipantesIds.length) }}</strong> times.
+      </div>
+    </BCol>
+  </BRow>
+
+  <BButton 
+    variant="info" 
+    class="w-100 text-white fw-bold shadow-sm py-2" 
+    :disabled="tecnicosParticipantesIds.length === 0"
+    @click="distribuirTecnicosAutomaticamente"
+  >
+    🎲 Sortear Técnicos nos {{ idsSelecionados.length }} Times Selecionados
+  </BButton>
+</BCard>
 
 <div
   class="border border-secondary rounded p-3 mb-3 bg-dark"
@@ -313,7 +360,7 @@
         <input
           type="checkbox"
           class="form-check-input bg-dark border-secondary"
-          :value="time.id"
+          :value="String(time.id)"
           v-model="idsSelecionados"
           @change="atualizarSelecaoTimes"
         />
@@ -351,10 +398,9 @@
   </div>
 </div>
 
-
-        <div class="d-flex justify-content-between align-items-center mb-4">
-          <BBadge variant="primary" class="p-2">{{ idsSelecionados.length }} times selecionados</BBadge>
-        </div>
+<div class="d-flex justify-content-between align-items-center mb-4 mt-2">
+  <BBadge variant="primary" class="p-2">{{ idsSelecionados.length }} times selecionados</BBadge>
+</div>
 
         <div v-if="campeonato.tipo !== 'PONTOS_CORRIDOS'">
           <h5 class="text-primary border-bottom border-secondary pb-2 mb-3">3. Definição de Jogos/Grupos</h5>
@@ -383,6 +429,15 @@
             <BButton variant="info" class="w-100 mt-2 text-white fw-bold" @click="executarSorteioGrupos">
               🎲 Sortear Grupos Agora
             </BButton>
+          </div>
+
+          <div v-if="campeonato.tipo === 'GRUPOS' && campeonato.modoDefinicao === 'TECNICOS'" class="mb-4">
+             <BAlert show variant="info" class="mb-3 small bg-dark border-info text-info">
+                 O sistema irá distribuir os times tentando evitar que o mesmo técnico caia no mesmo grupo.
+             </BAlert>
+             <BButton variant="info" class="w-100 text-white fw-bold" @click="executarSorteioGrupos">
+               🎲 Sortear Grupos (Por Técnico)
+             </BButton>
           </div>
 
           <div v-if="campeonato.tipo === 'GRUPOS' && campeonato.modoDefinicao === 'MANUAL'" class="mb-4">
@@ -450,18 +505,39 @@
 
             <div v-if="campeonato.tipo === 'MATA_MATA'">
               <div v-for="(jogo, i) in previewJogosApenasIda" :key="i"
-                class="d-flex justify-content-center align-items-center mb-2 border-bottom border-secondary pb-1 small text-white">
-                <img :src="jogo.timeA.escudo" width="20" class="me-2" />
-<span class="fw-bold">
-  {{ formatarNomeTime(jogo.timeA) }}
-</span>
+                class="d-flex justify-content-center align-items-center mb-3 border-bottom border-secondary pb-2 small text-white">
+                
+                <!-- Time A -->
+                <div class="d-flex align-items-center justify-content-end flex-grow-1 text-end gap-2">
+                   <small v-if="campeonato.adicionarNacionalidade && jogo.timeA.pais" class="text-muted text-uppercase" style="font-size: 0.7rem;">
+                     {{ jogo.timeA.pais.substring(0,3) }}
+                   </small>
+                   <BBadge v-if="abreviarTecnico(jogo.timeA.tecnico)" 
+                           pill
+                           :style="{ backgroundColor: corTecnico(jogo.timeA.tecnico) }" 
+                           size="sm" class="fw-bold px-2 text-white border-0">
+                     {{ abreviarTecnico(jogo.timeA.tecnico) }}
+                   </BBadge>
+                   <span class="fw-bold">{{ jogo.timeA.nome }}</span>
+                   <img :src="jogo.timeA.escudo" width="22" style="object-fit: contain;" />
+                </div>
 
-<span class="mx-3 badge border border-secondary">vs</span>
+                <span class="mx-3 badge bg-secondary bg-opacity-25 border border-secondary text-muted">VS</span>
 
-<span class="fw-bold">
-  {{ formatarNomeTime(jogo.timeB) }}
-</span>
-<img :src="jogo.timeB.escudo" width="20" class="ms-2" />
+                <!-- Time B -->
+                <div class="d-flex align-items-center justify-content-start flex-grow-1 text-start gap-2">
+                   <img :src="jogo.timeB.escudo" width="22" style="object-fit: contain;" />
+                   <span class="fw-bold">{{ jogo.timeB.nome }}</span>
+                   <BBadge v-if="abreviarTecnico(jogo.timeB.tecnico)" 
+                           pill
+                           :style="{ backgroundColor: corTecnico(jogo.timeB.tecnico) }" 
+                           size="sm" class="fw-bold px-2 text-white border-0">
+                     {{ abreviarTecnico(jogo.timeB.tecnico) }}
+                   </BBadge>
+                   <small v-if="campeonato.adicionarNacionalidade && jogo.timeB.pais" class="text-muted text-uppercase" style="font-size: 0.7rem;">
+                     {{ jogo.timeB.pais.substring(0,3) }}
+                   </small>
+                </div>
 
               </div>
             </div>
@@ -473,8 +549,18 @@
                     <strong class="text-primary">{{ grupo.nome }}</strong>
                     <ul class="list-unstyled mb-0 ms-2 small mt-2">
                       <li v-for="t in grupo.times" :key="t.id"
-                        class="border-bottom border-secondary py-1 text-white-50">
-                        <img :src="t.escudo" width="15" class="me-1" /> {{ t.nome }}
+                        class="border-bottom border-secondary py-2 text-white-50 d-flex align-items-center gap-2">
+                        <img :src="t.escudo" width="18" class="me-1" /> 
+                        <span class="text-white fw-bold">{{ t.nome }}</span>
+                        <BBadge v-if="abreviarTecnico(t.tecnico)" 
+                                pill
+                                :style="{ backgroundColor: corTecnico(t.tecnico) }" 
+                                size="sm" class="px-2 text-white border-0" style="font-size: 0.65rem;">
+                          {{ abreviarTecnico(t.tecnico) }}
+                        </BBadge>
+                        <small v-if="campeonato.adicionarNacionalidade && t.pais" class="text-muted ms-auto" style="font-size: 0.65rem;">
+                          {{ t.pais.substring(0, 3).toUpperCase() }}
+                        </small>
                       </li>
                     </ul>
                   </div>
@@ -523,6 +609,7 @@ export default {
       todosOsTimes: [],
       idsSelecionados: [],
       filtroPais: '',
+      tecnicosParticipantesIds: [], // Novos técnicos que vão participar do sorteio
 
       campeonato: {
         nome: '',
@@ -559,7 +646,8 @@ export default {
       previewJogos: [],
       previewGrupos: [],
       tecnicos: [],
-      idEdicao: null
+      idEdicao: null,
+      mostrarDistribuidorTecnicos: false // Controle de exibição do distribuidor
     }
   },
     computed: {
@@ -589,15 +677,16 @@ export default {
       return this.todosOsTimes.filter(t => t.nome.toLowerCase().includes(termo));
     },
     timesSelecionadosObj() {
-  return this.todosOsTimes
-    .filter(t => this.idsSelecionados.includes(t.id))
-    .map(t => ({
-  ...t,
-  pais: t.pais || '',
-  tecnico: t.tecnico || 'SEM_TECNICO'
-}));
-
-},
+      // Usa Set de Strings para garantir comparação correta
+      const idsSet = new Set(this.idsSelecionados.map(id => String(id)));
+      return this.todosOsTimes
+        .filter(t => idsSet.has(String(t.id)))
+        .map(t => ({
+          ...t,
+          pais: t.pais || '',
+          tecnico: t.tecnico || 'SEM_TECNICO'
+        }));
+    },
 
     timesDisponiveisParaPote() {
       const timesEmPotes = this.configGrupos.potes.flatMap(p => p.times.map(t => t.id));
@@ -620,13 +709,20 @@ export default {
     },
      
     timesFiltradosFinal() {
-      let lista = this.timesParaExibir;
-      if (this.filtroPais) {
-      lista = lista.filter(t => t.pais === this.filtroPais);
-    }
+      // 1. Filtragem por busca
+      let lista = this.todosOsTimes;
+      if (this.termoBusca) {
+        const termo = this.termoBusca.toLowerCase();
+        lista = lista.filter(t => t.nome.toLowerCase().includes(termo));
+      }
 
-  return lista;
-}
+      // 2. Filtragem por país
+      if (this.filtroPais) {
+        lista = lista.filter(t => t.pais === this.filtroPais);
+      }
+
+      return lista;
+    }
 
 
 
@@ -643,6 +739,36 @@ export default {
     }
   },
   methods: {
+    distribuirTecnicosAutomaticamente() {
+      if (this.tecnicosParticipantesIds.length === 0) return;
+      if (!confirm(`Deseja distribuir os ${this.tecnicosParticipantesIds.length} técnicos selecionados entre os ${this.idsSelecionados.length} times?`)) return;
+
+      // 1. Pega os objetos dos times que estão selecionados (Garantindo comparação String)
+      const idsSet = new Set(this.idsSelecionados.map(id => String(id)));
+      const timesSelecionados = this.todosOsTimes.filter(t => idsSet.has(String(t.id)));
+      
+      if (timesSelecionados.length === 0) {
+        alert("Selecione os times primeiro!");
+        return;
+      }
+
+      // 2. Embaralha os times para o sorteio ser justo
+      const timesEmbaralhados = [...timesSelecionados].sort(() => Math.random() - 0.5);
+      
+      // 3. Embaralha os técnicos participantes
+      const tecnicosEmbaralhados = [...this.tecnicosParticipantesIds].sort(() => Math.random() - 0.5);
+
+      // 4. Distribui ciclicamente e força a reatividade
+      timesEmbaralhados.forEach((time, index) => {
+          const tecnicoIndex = index % tecnicosEmbaralhados.length;
+          time.tecnico = tecnicosEmbaralhados[tecnicoIndex];
+      });
+
+      // 🔥 FORÇA REATIVIDADE (Vue 3 às vezes precisa de re-trigger em arrays de objetos modificados internamente)
+      this.todosOsTimes = [...this.todosOsTimes];
+
+      alert("🎲 Técnicos distribuídos nos " + timesSelecionados.length + " times!");
+    },
 
     formatarNomeTime(time) {
   if (!time) return '';
@@ -665,12 +791,60 @@ export default {
   return partes.join(' ');
 },
 
+abreviarTecnico(nome) {
+  if (!nome || nome === '' || nome === '---' || nome === 'Neutro' || nome === 'SEM_TECNICO') return null;
+  
+  // Se for nome composto, tenta pegar iniciais ou apenas os 3 primeiros
+  const partes = nome.split(' ');
+  if (partes.length >= 2) {
+    return (partes[0][0] + partes[1][0]).toUpperCase(); // Ex: Fabiano Correa -> FC
+  }
+  return nome.substring(0, 3).toUpperCase();
+},
+
+corTecnico(nome) {
+  if (!nome) return 'secondary';
+  // Cores mais pastéis/modernas
+  const colors = [
+    '#3b82f6', // blue
+    '#10b981', // emerald
+    '#6366f1', // indigo
+    '#f59e0b', // amber
+    '#ec4899', // pink
+    '#8b5cf6', // violet
+    '#06b6d4'  // cyan
+  ];
+  let hash = 0;
+  for (let i = 0; i < nome.length; i++) {
+    hash = nome.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+},
+
 
     async carregarTimes() {
       try {
-        this.todosOsTimes = await DbService.getTimes();
-      } catch (error) { console.error(error); }
-      finally { this.carregando = false; }
+        const rawTimes = await DbService.getTimes();
+        
+        // USA MAP PARA GARANTIR UNICIDADE POR ID (Normalizado como String)
+        const mapaUnico = new Map();
+        (rawTimes || []).forEach(t => {
+          const idStr = String(t.id);
+          if (!mapaUnico.has(idStr)) {
+            mapaUnico.set(idStr, {
+              ...t,
+              id: idStr, // Mantém como String
+              tecnico: t.tecnico || ''
+            });
+          }
+        });
+
+        this.todosOsTimes = Array.from(mapaUnico.values());
+      } catch (error) { 
+        console.error("Erro ao carregar times:", error); 
+      } finally { 
+        this.carregando = false; 
+      }
     },
      
     // 🔹 NOVO MÉTODO — AGRUPA TIMES POR TÉCNICO
@@ -691,7 +865,9 @@ export default {
   },
 
     isSelecionado(id) {
-      return this.idsSelecionados.includes(id);
+      if (!id) return false;
+      const idStr = String(id);
+      return this.idsSelecionados.some(selId => String(selId) === idStr);
     },
     resetarConfiguracoesEspecificas() {
       this.resetarPreviews();
@@ -719,11 +895,12 @@ export default {
       while (this.configGrupos.potes.length > novaQtd) this.configGrupos.potes.pop();
     },
     atualizarPotesSeNecessario() {
+      const ids = new Set(this.idsSelecionados.map(Number));
       this.configGrupos.potes.forEach(pote => {
-        pote.times = pote.times.filter(t => this.idsSelecionados.includes(t.id));
+        pote.times = pote.times.filter(t => ids.has(Number(t.id)));
       });
       this.configGrupos.gruposManuais.forEach(grupo => {
-        grupo.times = grupo.times.filter(t => this.idsSelecionados.includes(t.id));
+        grupo.times = grupo.times.filter(t => ids.has(Number(t.id)));
       });
     },
     adicionarAoPote(indexPote) {
@@ -766,102 +943,62 @@ export default {
     },
 
     executarSorteioGrupos() {
-  const times = [...this.timesSelecionadosObj];
-  const qtdGrupos = this.configGrupos.qtdGrupos;
-  const maxPorTecnico = this.configGrupos.maxTimesPorTecnico || 1;
+      // 1. FILTRAGEM RÍGIDA: Usa apenas times selecionados que existem na lista geral
+      const idsValidos = new Set(this.idsSelecionados.map(id => String(id)));
+      const timesParaSortear = this.todosOsTimes.filter(t => idsValidos.has(String(t.id)));
+      
+      if (timesParaSortear.length === 0) {
+        alert("Nenhum time válido selecionado para o sorteio.");
+        return;
+      }
 
-  const timesPorGrupo = Math.ceil(times.length / qtdGrupos);
+      const qtdGrupos = this.configGrupos.qtdGrupos || 2;
+      const maxPorTecnico = this.configGrupos.maxPorTecnico || 1;
 
-  // 1️⃣ Agrupa por técnico
-  const porTecnico = {};
-  times.forEach(time => {
-    const tec = time.tecnico || 'SEM_TECNICO';
-    if (!porTecnico[tec]) porTecnico[tec] = [];
-    porTecnico[tec].push(time);
-  });
+      // 2. Embaralha os times
+      const timesEmbaralhados = [...timesParaSortear].sort(() => Math.random() - 0.5);
 
-  // embaralha times de cada técnico
-  Object.values(porTecnico).forEach(lista =>
-    lista.sort(() => Math.random() - 0.5)
-  );
+      // 3. Inicializa grupos vazios
+      const grupos = Array.from({ length: qtdGrupos }, (_, i) => ({
+        nome: `Grupo ${String.fromCharCode(65 + i)}`,
+        times: []
+      }));
 
-  // 2️⃣ Cria grupos
-  const grupos = Array.from({ length: qtdGrupos }, (_, i) => ({
-    nome: `Grupo ${String.fromCharCode(65 + i)}`,
-    times: []
-  }));
+      // 4. DISTRIBUIÇÃO EQUILIBRADA (ROUND-ROBIN)
+      // Tenta respeitar o limite de técnicos, mas prioriza o equilíbrio numérico
+      timesEmbaralhados.forEach(time => {
+        const tec = time.tecnico || 'SEM_TECNICO';
 
-  // 3️⃣ Contador de técnicos por grupo
-  const contadorTecnicoGrupo = Array.from(
-    { length: qtdGrupos },
-    () => ({})
-  );
+        // Encontra grupos que:
+        // a) Ainda não atingiram o limite desse técnico
+        // b) Estão com menos times (mais vazios)
+        let grupoAlvo = grupos
+          .filter(g => {
+            const timesDoTecnicoNoGrupo = g.times.filter(t => (t.tecnico || 'SEM_TECNICO') === tec).length;
+            return timesDoTecnicoNoGrupo < maxPorTecnico;
+          })
+          .sort((a, b) => a.times.length - b.times.length)[0];
 
-  let aindaTemTimes = true;
+        // Se todos os grupos já atingiram o limite para esse técnico, pega o grupo mais vazio
+        if (!grupoAlvo) {
+          grupoAlvo = [...grupos].sort((a, b) => a.times.length - b.times.length)[0];
+        }
 
-  // 4️⃣ Distribuição controlada
-  while (aindaTemTimes) {
-    aindaTemTimes = false;
-
-    for (let g = 0; g < grupos.length; g++) {
-      if (grupos[g].times.length >= timesPorGrupo) continue;
-
-      // tenta técnico que ainda não estourou limite
-      let tecnicoEscolhido = Object.keys(porTecnico).find(t => {
-        const qtdNoGrupo = contadorTecnicoGrupo[g][t] || 0;
-        return porTecnico[t].length > 0 && qtdNoGrupo < maxPorTecnico;
+        if (grupoAlvo) {
+          grupoAlvo.times.push({ ...time });
+        }
       });
 
-      // fallback absoluto
-      if (!tecnicoEscolhido) {
-        tecnicoEscolhido = Object.keys(porTecnico).find(
-          t => porTecnico[t].length > 0
-        );
-      }
+      // 5. Embaralha a ordem INTERNA para evitar previsibilidade nos confrontos
+      grupos.forEach(g => {
+        g.times.sort(() => Math.random() - 0.5);
+      });
 
-      if (tecnicoEscolhido) {
-        const time = porTecnico[tecnicoEscolhido].shift();
-        grupos[g].times.push(time);
-
-        contadorTecnicoGrupo[g][tecnicoEscolhido] =
-          (contadorTecnicoGrupo[g][tecnicoEscolhido] || 0) + 1;
-
-        aindaTemTimes = true;
-      }
-    }
-  }
-
-  // 5️⃣ Preview
-  this.previewGrupos = grupos;
-  this.previewJogos = gerarJogosGrupos(grupos, this.campeonato.turnos);
-  // 6️⃣ VERIFICA VIOLAÇÃO DE LIMITE POR TÉCNICO
-const violacoes = [];
-
-this.previewGrupos.forEach(grupo => {
-  const mapa = {};
-
-  grupo.times.forEach(t => {
-    const tecnico = t.tecnico || 'SEM_TECNICO';
-    mapa[tecnico] = (mapa[tecnico] || 0) + 1;
-  });
-
-  Object.entries(mapa).forEach(([tecnico, qtd]) => {
-    if (qtd > this.configGrupos.maxTimesPorTecnico) {
-      violacoes.push(
-        `${grupo.nome}: ${tecnico} (${qtd} times)`
-      );
-    }
-  });
-});
-
-if (violacoes.length) {
-  alert(
-    '⚠️ Não foi possível respeitar totalmente o limite por técnico:\n\n' +
-    violacoes.join('\n')
-  );
-}
-
-},
+      // 6. Atualiza Previews
+      this.previewGrupos = grupos;
+      this.previewJogos = gerarJogosGrupos(grupos, this.campeonato.turnos);
+      alert("🏆 Sorteio completo e equilibrado!");
+    },
 
 
 
@@ -1063,17 +1200,27 @@ jogos:
         this.campeonato.ativarMataMataPontosCorridos = !!camp.classificadosParaMataMata;
         this.campeonato.urlTrofeu = camp.urlTrofeu || ''; // Carregando para edição
 
-        // Mapear times selecionados (usa timesParticipantes que é a chave correta do banco)
+        // Mapear times selecionados
         const timesDocamp = camp.timesParticipantes || camp.times || [];
         if (timesDocamp.length > 0) {
-          this.idsSelecionados = timesDocamp.map(t => t.id);
-          // Restaurar técnicos nos times originais (para o input select)
+          // 🔧 LIMPEZA RÍGIDA: IDs no banco podem ser strings/números, normalizamos para STRING
+          const idsUnicos = [...new Set(timesDocamp.map(t => String(t.id)))];
+          
+          // Sincroniza idsSelecionados (Sempre String e Único)
+          this.idsSelecionados = idsUnicos;
+
+          // Restaura técnicos na lista mestre de todosOsTimes
+          const tecsNoCamp = new Set();
           timesDocamp.forEach(tSalvo => {
-            const timeNaLista = this.todosOsTimes.find(t => t.id === tSalvo.id);
+            const timeNaLista = this.todosOsTimes.find(t => String(t.id) === String(tSalvo.id));
             if (timeNaLista) {
               timeNaLista.tecnico = tSalvo.tecnico || '';
+              if (timeNaLista.tecnico && timeNaLista.tecnico !== 'SEM_TECNICO' && timeNaLista.tecnico !== 'Neutro') {
+                 tecsNoCamp.add(timeNaLista.tecnico);
+              }
             }
           });
+          this.tecnicosParticipantesIds = Array.from(tecsNoCamp);
         }
 
         // Mapear grupos

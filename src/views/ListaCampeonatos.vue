@@ -6,7 +6,7 @@
         <BSpinner variant="primary" label="Carregando..." />
       </div>
 
-      <BTabs v-else card active-nav-item-class="font-weight-bold text-primary" content-class="mt-3" v-model="tabIndex">
+      <BTabs v-show="!carregando" card active-nav-item-class="font-weight-bold text-primary" content-class="mt-3" v-model:model-value="tabIndex">
         
         <!-- ABA: CAMPEONATOS ATIVOS -->
         <BTab title="🏆 EM ANDAMENTO">
@@ -46,6 +46,9 @@
                                     <div class="d-flex gap-2">
                                         <BButton size="sm" variant="outline-warning" class="flex-grow-1" @click="editarCampeonato(camp.id)" title="Editar">
                                             ✏️ Configurar
+                                        </BButton>
+                                        <BButton size="sm" variant="outline-info" @click="duplicarCampeonato(camp.id)" title="Clonar Campeonato">
+                                            📄 Clonar
                                         </BButton>
                                         <BButton size="sm" variant="outline-danger" @click="excluirCampeonato(camp.id)" title="Excluir">
                                             🗑️
@@ -88,6 +91,9 @@
                     <div class="d-flex gap-2">
                         <BButton size="sm" variant="outline-light" @click="irParaDetalhes(camp.id)">
                             👁️ Ver Histórico
+                        </BButton>
+                        <BButton size="sm" variant="outline-info" @click="duplicarCampeonato(camp.id)" title="Clonar Campeonato">
+                            📄 Clonar
                         </BButton>
                         <BButton size="sm" variant="outline-danger" @click="excluirCampeonatoSeguro(camp)" title="Excluir Definitivamente">
                             🗑️
@@ -192,14 +198,24 @@ export default {
         }
     },
 
-    async duplicarCampeonato(id) { // Mantido caso precise futuramente, mas removido da UI ativa para simplificar
+    async duplicarCampeonato(id) { 
       if (!confirm("Deseja criar uma cópia idêntica deste campeonato?")) return;
       try {
         this.carregando = true;
         await DbService.duplicarCampeonato(id);
+        
+        // 1. Já prepara a aba correta ANTES do refresh de dados
+        this.tabIndex = 0; 
+        
         alert("Cópia criada com sucesso!");
+        
+        // 2. Recarrega os dados (o carregarDados já vai setar carregando=false no final)
         await this.carregarDados();
-      } catch (error) { console.error(error); } finally { this.carregando = false; }
+        
+      } catch (error) { 
+        console.error(error); 
+        this.carregando = false;
+      }
     },
 
     editarCampeonato(id) {

@@ -1,191 +1,269 @@
 <template>
   <div class="container mt-4 mb-5" v-if="time">
     
-    <!-- HEADER DO TIME -->
-    <div class="card bg-dark border-secondary shadow-sm mb-4 overflow-hidden">
-      <div class="card-body p-0">
-        <div class="row m-0 align-items-center">
-          <!-- Mobile: Center Text, Stack Image -->
-          <div class="col-md-3 bg-secondary bg-opacity-10 p-4 text-center border-bottom border-md-end border-end-0 border-secondary">
-             <img :src="time.escudo" style="width: 100px; height: 100px; object-fit: contain;" class="mb-3" />
-             <h3 class="text-white fw-bold mb-1 fs-4">{{ time.nome }}</h3>
-             <span class="badge bg-primary text-uppercase">{{ time.pais || 'Sem País' }}</span>
-          </div>
-          <div class="col-md-9 p-3 p-md-4">
-             <div class="row text-center g-2 g-md-3">
-                <div class="col-4">
-                   <div class="text-muted small text-uppercase mb-1" style="font-size: 0.7rem;">Títulos</div>
-                   <div class="h3 h2-md fw-bold text-warning mb-0">{{ totalTitulos }}</div>
-                </div>
-                <div class="col-4 border-start border-end border-secondary">
-                   <div class="text-muted small text-uppercase mb-1" style="font-size: 0.7rem;">Gols Hist.</div>
-                   <div class="h3 h2-md fw-bold text-white mb-0">{{ totalGols }}</div>
-                </div>
-                <div class="col-4">
-                   <div class="text-muted small text-uppercase mb-1" style="font-size: 0.7rem;">Aprov.</div>
-                   <div class="h3 h2-md fw-bold text-success mb-0">{{ aproveitamento }}%</div>
-                </div>
+    <!-- HEADER DO TIME (MODERNO) -->
+    <div class="card border-0 shadow-lg mb-4 overflow-hidden position-relative text-white" 
+         style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); min-height: 280px;">
+         
+         <!-- EFEITO DE FUNDO (LOGO GRANDE DE COR PÁLIDA) -->
+         <div class="position-absolute" 
+              style="top: -20%; right: -5%; opacity: 0.1; transform: rotate(-15deg); pointer-events: none;">
+             <img :src="time.escudo" style="width: 500px; height: 500px; filter: grayscale(100%);" />
+         </div>
+
+      <div class="card-body p-0 d-flex flex-column flex-md-row">
+          
+          <!-- LADO ESQUERDO: ESCUDO E IDENTIFICAÇÃO -->
+          <div class="col-md-3 p-4 text-center d-flex flex-column justify-content-center align-items-center position-relative z-1 border-end border-white border-opacity-10" 
+               style="background: rgba(255,255,255,0.02); backdrop-filter: blur(5px);">
+             
+             <!-- Botão Voltar (Estilizado) -->
+             <div class="position-absolute top-0 start-0 m-3">
+                <button class="btn btn-sm btn-link text-white-50 text-decoration-none p-0 hover-white transition-all d-flex align-items-center gap-1" @click="$router.back()" title="Voltar">
+                    <i class="bi bi-arrow-left fs-5"></i> 
+                    <span class="d-none d-md-inline small text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 1px;">Voltar</span>
+                </button>
              </div>
-             <div class="mt-4 pt-3 border-top border-secondary">
-                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
-                   <div class="text-center text-md-start mb-2 mb-md-0">
-                      <span class="text-muted small">🏟️ <strong>{{ time.estadio || '-' }}</strong></span>
-                   </div>
-                   <div class="d-flex flex-column flex-sm-row gap-2 w-100 w-md-auto">
-                     <BButton variant="outline-info" size="sm" class="w-100 w-sm-auto" @click="$router.push(`/historico-confrontos/${time.id}`)">
-                        📜 Histórico de Confrontos
-                     </BButton>
-                     <BButton variant="outline-light" size="sm" class="w-100 w-sm-auto" @click="$router.back()">Voltar</BButton>
-                   </div>
-                </div>
+
+             <div class="mt-3 position-relative">
+                 <div class="position-absolute top-50 start-50 translate-middle" 
+                      style="width: 140px; height: 140px; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%); border-radius: 50%;"></div>
+                 <img :src="time.escudo" style="width: 110px; height: 110px; object-fit: contain; position: relative; z-index: 2;" class="drop-shadow-lg mb-3" />
+             </div>
+             
+             <h2 class="fw-bold mb-1 ls-1 text-shadow">{{ time.nome }}</h2>
+             <div class="d-flex align-items-center gap-2 mt-1">
+                 <span class="badge bg-white text-dark text-uppercase px-2 py-1 rounded-1 fw-bold border border-white border-opacity-25" style="letter-spacing: 1px; font-size: 0.65rem;">
+                    {{ time.pais || 'Mundo' }}
+                 </span>
+             </div>
+             
+             <div class="mt-3 text-white-50 small d-flex align-items-center justify-content-center gap-2">
+                 <i class="bi bi-geo-alt-fill text-primary"></i> {{ time.estadio || 'Estádio Desconhecido' }}
              </div>
           </div>
-        </div>
+
+          <!-- LADO DIREITO: RESUMO ESTATÍSTICO (GRID UNIFICADO) -->
+          <div class="col-md-9 p-4 d-flex flex-column justify-content-center position-relative z-1">
+             
+             <!-- GRID DE STATS (3 LINHAS) -->
+             <div class="d-flex flex-column gap-3 align-items-center w-100 h-100 justify-content-center">
+                
+                <!-- LINHA 1: TÍTULOS | JOGOS | APROV -->
+                <div class="row w-100 text-center justify-content-center align-items-end">
+                    <div class="col-4 col-md-3">
+                        <div class="text-white-50 text-uppercase fw-bold mb-1" style="font-size: 0.65rem; letter-spacing: 1px;">Títulos</div>
+                        <div class="display-6 fw-bold text-warning text-shadow lh-1">{{ totalTitulos }}</div>
+                    </div>
+                    <div class="col-4 col-md-3 px-0 position-relative">
+                        <div class="position-absolute start-0 top-50 translate-middle-y h-50 border-start border-white border-opacity-10"></div>
+                        <div class="text-white-50 text-uppercase fw-bold mb-1" style="font-size: 0.65rem; letter-spacing: 1px;">Jogos</div>
+                        <div class="display-6 fw-bold text-white text-shadow lh-1">{{ statsGerais.jogos }}</div>
+                        <div class="position-absolute end-0 top-50 translate-middle-y h-50 border-end border-white border-opacity-10"></div>
+                    </div>
+                    <div class="col-4 col-md-3">
+                        <div class="text-white-50 text-uppercase fw-bold mb-1" style="font-size: 0.65rem; letter-spacing: 1px;">Aprov.</div>
+                        <div class="display-6 fw-bold text-info text-shadow lh-1">{{ aproveitamento }}<span class="fs-6 text-white-50">%</span></div>
+                    </div>
+                </div>
+
+                <!-- LINHA 2: VIT | EMP | DER -->
+                <div class="row w-100 text-center justify-content-center">
+                    <div class="col-4 col-md-3">
+                       <div class="bg-success bg-opacity-10 rounded p-1 border border-success border-opacity-25 h-100 d-flex flex-column justify-content-center">
+                           <span class="h5 fw-bold text-white mb-0">{{ statsGerais.vitorias }}</span>
+                           <span class="text-success text-uppercase fw-bold" style="font-size: 0.55rem; letter-spacing: 1px;">VIT</span>
+                       </div>
+                    </div>
+                    <div class="col-4 col-md-3">
+                       <div class="bg-secondary bg-opacity-10 rounded p-1 border border-secondary border-opacity-25 h-100 d-flex flex-column justify-content-center">
+                           <span class="h5 fw-bold text-white mb-0">{{ statsGerais.empates }}</span>
+                           <span class="text-secondary text-uppercase fw-bold" style="font-size: 0.55rem; letter-spacing: 1px;">EMP</span>
+                       </div>
+                    </div>
+                    <div class="col-4 col-md-3">
+                       <div class="bg-danger bg-opacity-10 rounded p-1 border border-danger border-opacity-25 h-100 d-flex flex-column justify-content-center">
+                           <span class="h5 fw-bold text-white mb-0">{{ statsGerais.derrotas }}</span>
+                           <span class="text-danger text-uppercase fw-bold" style="font-size: 0.55rem; letter-spacing: 1px;">DER</span>
+                       </div>
+                    </div>
+                </div>
+
+                <!-- LINHA 3: GOLS -->
+                <div class="row w-100 text-center justify-content-center mt-1">
+                     <div class="col-4 col-md-3">
+                        <div class="text-white-50 text-uppercase fw-bold mb-0" style="font-size: 0.65rem; letter-spacing: 1px;">Gols Pró</div>
+                        <div class="h5 fw-bold text-white mb-0">{{ statsGerais.golsPro }}</div>
+                     </div>
+                     <div class="col-4 col-md-3 px-0 position-relative">
+                        <div class="position-absolute start-0 top-50 translate-middle-y h-50 border-start border-white border-opacity-10"></div>
+                        <div class="text-white-50 text-uppercase fw-bold mb-0" style="font-size: 0.65rem; letter-spacing: 1px;">Gols Sofr.</div>
+                        <div class="h5 fw-bold text-white mb-0">{{ statsGerais.golsContra }}</div>
+                        <div class="position-absolute end-0 top-50 translate-middle-y h-50 border-end border-white border-opacity-10"></div>
+                     </div>
+                     <div class="col-4 col-md-3">
+                        <div class="text-white-50 text-uppercase fw-bold mb-0" style="font-size: 0.65rem; letter-spacing: 1px;">Saldo</div>
+                        <div class="h5 fw-bold mb-0" :class="saldoGols >= 0 ? 'text-success' : 'text-danger'">
+                            {{ saldoGols > 0 ? '+' : '' }}{{ saldoGols }}
+                        </div>
+                     </div>
+                 </div>
+                 
+                 <!-- BOTÃO E FILTRO -->
+                 <div class="mt-3 w-100 px-3">
+                     <div class="d-flex flex-column flex-sm-row justify-content-center align-items-center gap-3">
+                         
+                         <!-- BOTÃO HISTÓRICO -->
+                         <button class="btn btn-outline-light rounded-pill px-4 py-2 hover-scale transition-all border-opacity-25 btn-sm flex-grow-1" 
+                                 style="max-width: 250px;"
+                                 @click="$router.push(`/historico-confrontos/${time.id}`)">
+                            <span class="fw-bold small text-uppercase me-2" style="letter-spacing: 1px;">Confrontos</span>
+                            <i class="bi bi-chevron-right small"></i>
+                         </button>
+
+                          <!-- FILTRO TÉCNICO -->
+                          <div class="d-flex gap-1" style="max-width: 250px; flex-grow: 1;">
+                              <div class="input-group input-group-sm flex-grow-1">
+                                  <span class="input-group-text bg-dark border-secondary border-opacity-25 text-white-50">
+                                      <i class="bi bi-funnel-fill"></i>
+                                  </span>
+                                  <select class="form-select bg-dark text-white border-secondary border-opacity-25 shadow-none" 
+                                          v-model="tecnicoFiltro" 
+                                          style="font-size: 0.8rem;">
+                                      <option value="TODOS">Todos os Técnicos</option>
+                                      <option v-for="tec in listaTecnicosDoTime" :key="tec" :value="tec">
+                                          {{ tec }}
+                                      </option>
+                                  </select>
+                              </div>
+                              <button v-if="tecnicoFiltro !== 'TODOS'" 
+                                      class="btn btn-sm btn-primary px-2" 
+                                      @click="$router.push(`/dashboard/tecnico/${tecnicoFiltro}`)" 
+                                      title="Ver Perfil do Técnico">
+                                  <i class="bi bi-person-badge"></i>
+                              </button>
+                          </div>
+                     </div>
+                 </div>
+
+             </div>
+          </div>
       </div>
     </div>
 
-    <!-- TROFÉUS -->
-    <h5 class="text-primary border-bottom border-secondary pb-2 mb-3 mt-4">🏆 SALA DE TROFÉUS</h5>
-    <div v-if="titulosAgrupados.length === 0" class="text-muted small mb-4 italic">
-      Ainda não conquistou títulos registrados.
-    </div>
-    <div class="row g-2 mb-4">
-       <div v-for="(grupo, idx) in titulosAgrupados" :key="idx" class="col-12 col-md-6 col-lg-4">
-          <div class="bg-dark border border-warning rounded p-2 d-flex align-items-start gap-2 position-relative h-100" :title="grupo.nome">
-             <span v-if="grupo.qtd > 1" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light">
-                {{ grupo.qtd }}x
-             </span>
-             <img :src="grupo.urlTrofeu || require('@/assets/icup-logo.png')" style="width: 40px; height: 40px; object-fit: contain;" v-if="grupo.urlTrofeu" />
-             <div class="d-flex flex-column w-100">
-                <span class="text-warning fw-bold lh-1 mb-1">{{ grupo.nome }}</span>
-                <div v-for="(c, cIdx) in grupo.conquistas" :key="cIdx" class="d-flex justify-content-between small text-white-50 border-bottom border-secondary border-opacity-25 pb-1 mb-1">
-                   <span :title="formatarData(c.data)">{{ formatarDataCurta(c.data) }}</span>
-                   <span class="text-end italic">
-                      <span class="text-secondary me-1" style="font-size: 0.7em;">Técnico:</span>
-                      {{ resolverNomeTecnico(c.tecnico) }}
-                   </span>
-                </div>
-             </div>
-          </div>
-       </div>
-    </div>
-
-    <!-- DESEMPENHO POR COMPETIÇÃO -->
-    <h5 class="text-primary border-bottom border-secondary pb-2 mb-3 mt-4">📊 DESEMPENHO POR COMPETIÇÃO</h5>
-    <div v-if="estatisticasPorCompeticao.length === 0" class="text-muted small mb-4">
-        Sem histórico suficiente.
-    </div>
-    <div class="row g-3 mb-4">
-        <div v-for="comp in estatisticasPorCompeticao" :key="comp.nome" class="col-md-6 col-xl-4">
-            <div class="card bg-dark border-secondary h-100">
-                <div class="card-header border-secondary bg-secondary bg-opacity-10 text-white fw-bold">
-                    {{ comp.nome }}
-                </div>
-                <ul class="list-group list-group-flush">
-                    <li v-for="(p, i) in comp.participacoes" :key="p.id" class="list-group-item bg-dark border-secondary text-white-50 d-flex justify-content-between align-items-center small">
-                        <div>
-                            <div>{{ i + 1 }}ª Edição <small class="text-muted ms-1" style="font-size: 0.7em;">({{ new Date(p.data).getFullYear() }})</small></div>
-                            <small class="text-info fst-italic" style="font-size: 0.7em;" v-if="p.tecnico">Téc. {{ p.tecnico }}</small>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                             <span :class="{'text-warning fw-bold': p.posicao === 1}">{{ p.posicao }}º</span>
-                             <span v-if="p.posicao === 1">🏆</span>
-                        </div>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </div>
-
-    <!-- ESTATÍSTICAS E GRÁFICOS (Placeholder para Fase 4) -->
     <div class="row">
-       <div class="col-12 col-lg-8">
+        <!-- COLUNA PRINCIPAL (Esquerda) -->
+        <div class="col-12 col-lg-8">
             
-            <!-- FILTRO DE COMPETIÇÃO -->
-            <div class="d-flex justify-content-end mb-2">
-                <select class="form-select w-auto bg-dark text-light border-secondary" 
-                        v-model="competicaoFiltro" @change="prepararGrafico">
-                    <option value="TODAS">Todas as Competições</option>
-                    <option v-for="c in estatisticasPorCompeticao" :key="c.nome" :value="c.nome">{{ c.nome }}</option>
-                </select>
+            <!-- TROFÉUS -->
+            <div class="d-flex align-items-center justify-content-between border-bottom border-secondary pb-2 mb-3 mt-2">
+                <h5 class="text-primary mb-0 fw-bold ls-1 d-flex align-items-center gap-2">
+                    <i class="bi bi-trophy"></i> SALA DE TROFÉUS
+                </h5>
+                <button class="btn btn-sm btn-outline-warning rounded-pill px-3 py-1" @click="$router.push(`/times/${time.id}/trofeus`)">
+                    <i class="bi bi-grid-fill me-1"></i> Ver Sala Completa
+                </button>
             </div>
 
-            <div class="card bg-dark border-secondary mb-3">
-              <div class="card-header border-secondary d-flex justify-content-between align-items-center">
-                 <h6 class="mb-0 text-white"><i class="bi bi-graph-up me-2"></i>Evolução de Aproveitamento</h6>
-              </div>
-              <div class="card-body">
-                <div v-if="chartSeries[0].data.length > 0">
-                   <apexchart type="line" height="100%" :options="chartOptions" :series="chartSeries"></apexchart>
-                </div>
-                <div v-else class="text-center py-5 text-muted small">
-                   Faltam dados históricos para gerar o gráfico.
-                </div>
-             </div>
-          </div>
-
-          <div class="card bg-dark border-secondary mb-3">
-             <div class="card-header border-secondary bg-secondary bg-opacity-10 text-white">Evolução de Colocação</div>
-             <div class="card-body">
-                <div v-if="chartSeriesColocacao.length > 0">
-                   <apexchart type="line" height="100%" :options="chartOptionsColocacao" :series="chartSeriesColocacao"></apexchart>
-                </div>
-                <div v-else class="text-center py-5 text-muted small">
-                   Dados insuficientes para gerar gráfico.
-                </div>
-             </div>
-          </div>
+            <div v-if="titulosAgrupados.length === 0" class="text-muted small mb-4 italic p-4 text-center bg-dark rounded border border-secondary border-dashed border-opacity-25">
+              <i class="bi bi-award fs-1 text-secondary opacity-25 mb-2 d-block"></i>
+              Ainda não conquistou títulos registrados.
+            </div>
+            <div class="row g-2 mb-4">
+               <!-- Mostra apenas os 4 primeiros no dashboard -->
+               <div v-for="(grupo, idx) in titulosAgrupados.slice(0, 4)" :key="idx" class="col-12 col-md-6">
+                  <div class="bg-dark border border-warning rounded p-3 d-flex align-items-start gap-3 position-relative h-100 shadow-sm hover-elevate transition-all" :title="grupo.nome">
+                     <span v-if="grupo.qtd > 1" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light shadow-sm">
+                        {{ grupo.qtd }}x
+                     </span>
+                     
+                     <!-- ICONE DO TROFÉU: Fundo transparente, maior e com sombra -->
+                     <div class="p-1 flex-shrink-0">
+                        <img :src="grupo.urlTrofeu || require('@/assets/icup-logo.png')" style="width: 60px; height: 60px; object-fit: contain; filter: drop-shadow(0 0 5px rgba(255,215,0,0.5));" v-if="grupo.urlTrofeu" />
+                     </div>
+                     
+                     <div class="d-flex flex-column w-100">
+                        <span class="text-warning fw-bold lh-1 mb-2 fs-6">{{ grupo.nome }}</span>
+                        <div v-for="(c, cIdx) in grupo.conquistas" :key="cIdx" class="d-flex justify-content-between small text-white-50 border-bottom border-secondary border-opacity-10 pb-1 mb-1">
+                           <span class="fw-bold text-white">{{ c.edicao }}ª Edição</span>
+                            <span class="text-end italic" style="font-size: 0.75rem;">
+                               <i class="bi bi-person text-secondary me-1"></i>
+                               <router-link :to="`/dashboard/tecnico/${c.tecnico}`" class="text-info text-decoration-none hover-underline">
+                                  {{ resolverNomeTecnico(c.tecnico) }}
+                               </router-link>
+                            </span>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
 
             <!-- HISTÓRICO DE TORNEIOS -->
-            <h5 class="text-primary border-bottom border-secondary pb-2 mb-3 mt-4">📋 HISTÓRICO DE COMPETIÇÕES</h5>
-            <div v-if="participacoes.length === 0" class="text-muted small mb-4 italic text-center py-4 bg-dark rounded border border-secondary border-dashed">
-            Ainda não participou de competições encerradas.
+            <h5 class="text-primary border-bottom border-secondary pb-2 mb-3 mt-5 fw-bold ls-1 d-flex align-items-center gap-2">
+                <i class="bi bi-journal-text"></i> HISTÓRICO DE COMPETIÇÕES
+            </h5>
+            <div v-if="participacoes.length === 0" class="text-muted small mb-4 italic text-center py-5 bg-dark rounded border border-secondary border-dashed border-opacity-25">
+                <i class="bi bi-calendar-x fs-1 text-secondary opacity-25 mb-2 d-block"></i>
+                <span v-if="tecnicoFiltro !== 'TODOS'">Nenhuma competição encontrada para o técnico selecionado.</span>
+                <span v-else>Ainda não participou de competições encerradas.</span>
             </div>
             <div v-else class="d-flex flex-column gap-2 mb-4">
-                <div v-for="p in participacoes" :key="p.id" class="bg-dark border border-secondary rounded overflow-hidden">
+                <div v-for="p in participacoes" :key="p.id" class="bg-dark border border-secondary border-opacity-25 rounded overflow-hidden shadow-sm transition-all">
                     <!-- HEADER DO ITEM (COMPACTO) -->
-                    <div class="d-flex align-items-center justify-content-between p-2 cursor-pointer hover-bg-light" @click="alternarJogos(p.id)">
+                    <div class="d-flex align-items-center justify-content-between p-3 cursor-pointer hover-bg-light transition-colors" @click="alternarJogos(p.id)">
                         <!-- Lado Esquerdo: Logo e Info Básica -->
                         <div class="d-flex align-items-center gap-3 flex-grow-1" style="min-width: 0;">
-                            <div class="bg-white rounded p-1 flex-shrink-0" v-if="p.urlTrofeu" style="width: 36px; height: 36px;">
-                                <img :src="p.urlTrofeu" style="width: 100%; height: 100%; object-fit: contain;" />
+                            
+                            <!-- ICONE DO TROFEU NA LISTA: Sem fundo branco, maior -->
+                            <div class="rounded p-0 flex-shrink-0" v-if="p.urlTrofeu" style="width: 50px; height: 50px;">
+                                <img :src="p.urlTrofeu" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 0 2px rgba(255,255,255,0.2));" />
                             </div>
+                            
                             <div class="d-flex flex-column lh-1 overflow-hidden">
-                                <span class="text-white fw-bold text-truncate">{{ p.nomeCamp }}</span>
-                                <span class="text-muted small" style="font-size: 0.75rem;">{{ new Date(p.data).getFullYear() }}</span>
+                                <span class="text-white fw-bold text-truncate mb-1">{{ p.nomeCamp }}</span>
+                                <span class="text-muted small text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">{{ p.edicao }}ª Edição</span>
                             </div>
                         </div>
 
                         <!-- Lado Direito: Posição e Stats -->
                         <div class="d-flex align-items-center gap-3 ms-2">
                             <!-- Posição -->
-                            <div class="text-end d-none d-sm-block">
-                                <div class="fw-bold" :class="{'text-warning': p.posicao === 1, 'text-light': p.posicao === 2}">
-                                    {{ p.posicao }}º <span v-if="p.posicao === 1">🏆</span>
-                                </div>
+                            <div class="text-end d-none d-sm-block me-2">
+                                <span v-if="p.posicao === 1" class="badge bg-warning text-dark border border-warning shadow-sm"><i class="bi bi-trophy-fill me-1"></i>CAMPEÃO</span>
+                                <span v-else-if="p.posicao === 2" class="badge bg-light text-dark border border-white shadow-sm">VICE-CAMPEÃO</span>
+                                <span v-else-if="p.posicao === 3" class="badge bg-warning text-dark border border-warning bg-opacity-50 shadow-sm" style="background-color: #cd7f32 !important; border-color: #a0522d !important;"><i class="bi bi-award-fill me-1"></i>3º LUGAR</span>
+                                <span v-else class="fw-bold text-white-50 small">{{ p.posicao }}º Lugar</span>
                             </div>
 
                             <!-- Resumo de Stats (Mini Badges) -->
-                            <div class="d-flex gap-1">
-                                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25" title="Vitórias">{{ p.vitorias }}V</span>
-                                <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25" title="Empates">{{ p.empates }}E</span>
-                                <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25" title="Derrotas">{{ p.derrotas }}D</span>
-                                <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-25 d-none d-md-inline-block" title="Gols Pró">{{ p.golsPro }}GP</span>
+                            <div class="d-flex gap-1 d-none d-md-flex">
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" title="Vitórias">{{ p.vitorias }}V</span>
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25" title="Empates">{{ p.empates }}E</span>
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25" title="Derrotas">{{ p.derrotas }}D</span>
                             </div>
 
                             <!-- Ícone Expandir -->
-                            <span class="text-muted transition-transform" :class="{'rotate-180': p.expandidio}">
-                                {{ p.aberto ? '▲' : '▼' }}
-                            </span>
+                            <button class="btn btn-sm btn-icon btn-dark border-secondary border-opacity-25 rounded-circle" :class="{'rotate-180': p.expandidio}">
+                                <i class="bi" :class="p.aberto ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                            </button>
                         </div>
                     </div>
 
                     <!-- JOGOS DESTE TORNEIO (EXPANSÍVEL) -->
-                    <div v-if="p.aberto" class="border-top border-secondary bg-black bg-opacity-25">
+                    <div v-if="p.aberto" class="border-top border-secondary border-opacity-25 bg-black bg-opacity-25">
+                         <!-- Linha de Técnico DO TORNEIO (Header da seção) -->
+                          <div class="py-2 px-3 border-bottom border-secondary border-opacity-10 bg-secondary bg-opacity-10 small text-end text-muted fst-italic">
+                              <i class="bi bi-person-workspace me-1"></i> Comandado por: 
+                              <router-link v-if="p.tecnico" :to="`/dashboard/tecnico/${p.tecnico}`" class="text-white text-decoration-none hover-underline">
+                                  {{ p.tecnico }}
+                              </router-link>
+                              <span v-else class="text-white">N/A</span>
+                          </div>
+                        
                         <div v-for="(j, idx) in p.confrontos" :key="idx" 
-                                class="d-flex align-items-center justify-content-between border-bottom border-secondary border-opacity-10 py-2 px-3 small">
+                                class="d-flex align-items-center justify-content-between border-bottom border-secondary border-opacity-10 py-2 px-3 small hover-bg-dark transition-colors">
                             
-                            <div class="text-muted text-center flex-shrink-0 me-2" style="width: 30px; font-size: 0.7rem;">
+                            <div class="text-muted text-center flex-shrink-0 me-3" style="width: 40px; font-size: 0.7rem;">
                                 {{ j.fase === 'Fase de Grupos' ? 'FG' : (j.fase || `R${j.rodada}`) }}
                             </div>
                             
@@ -198,22 +276,32 @@
                                             <span v-if="p.adicionarNacionalidade && j.timeA.pais" class="text-success me-1 small" style="font-size: 0.7em;">{{ j.timeA.pais }}</span>
                                             {{ j.timeA.nome }}
                                         </span>
-                                        <small class="text-muted" style="font-size: 0.65em;" v-if="j.timeA.tecnico">{{ resolverNomeTecnico(j.timeA.tecnico) }}</small>
+                                        <!-- TÉCNICO A (RESTAURADO) -->
+                                         <small class="text-muted" style="font-size: 0.65em;" v-if="j.timeA.tecnico">
+                                             <router-link :to="`/dashboard/tecnico/${j.timeA.tecnico}`" class="text-muted text-decoration-none hover-underline">
+                                                 {{ resolverNomeTecnico(j.timeA.tecnico) }}
+                                             </router-link>
+                                         </small>
                                     </div>
-                                    <img :src="j.timeA.escudo" style="width: 18px; height: 18px;" />
+                                    <img :src="j.timeA.escudo" style="width: 24px; height: 24px;" />
                                 </div>
                                 
-                                <span class="mx-2 badge bg-dark border border-secondary">{{ j.golsA }} x {{ j.golsB }}</span>
+                                <span class="mx-3 badge bg-dark border border-secondary shadow-sm" style="min-width: 40px;">{{ j.golsA }} x {{ j.golsB }}</span>
 
                                 <!-- TIME B -->
                                 <div class="d-flex align-items-center justify-content-start gap-2 text-start" style="width: 45%;">
-                                    <img :src="j.timeB.escudo" style="width: 18px; height: 18px;" />
+                                    <img :src="j.timeB.escudo" style="width: 24px; height: 24px;" />
                                     <div class="d-flex flex-column lh-1 overflow-hidden align-items-start">
                                         <span class="text-truncate d-none d-sm-block bg-transparent" :class="{'fw-bold text-white': j.timeB.id === time.id}">
                                             {{ j.timeB.nome }}
                                             <span v-if="p.adicionarNacionalidade && j.timeB.pais" class="text-success ms-1 small" style="font-size: 0.7em;">{{ j.timeB.pais }}</span>
                                         </span>
-                                        <small class="text-muted" style="font-size: 0.65em;" v-if="j.timeB.tecnico">{{ resolverNomeTecnico(j.timeB.tecnico) }}</small>
+                                        <!-- TÉCNICO B (RESTAURADO) -->
+                                         <small class="text-muted" style="font-size: 0.65em;" v-if="j.timeB.tecnico">
+                                              <router-link :to="`/dashboard/tecnico/${j.timeB.tecnico}`" class="text-muted text-decoration-none hover-underline">
+                                                  {{ resolverNomeTecnico(j.timeB.tecnico) }}
+                                              </router-link>
+                                         </small>
                                     </div>
                                 </div>
                             </div>
@@ -221,76 +309,138 @@
                     </div>
                 </div>
             </div>
-       </div>
-       
-       <div class="col-12 col-lg-4">
-          <div class="card bg-dark border-secondary mb-3">
-             <div class="card-header border-secondary bg-secondary bg-opacity-10 text-white d-flex justify-content-between align-items-center">
-                <span class="fw-bold">Resumo do Clube</span>
-             </div>
-             <div class="card-body p-0">
-                <!-- Stats Grid -->
-                <div class="row text-center py-3 m-0 border-bottom border-secondary">
-                   <div class="col-3 border-end border-secondary">
-                      <h4 class="m-0 text-white fw-bold">{{ statsGerais.jogos }}</h4>
-                      <small class="text-muted text-uppercase" style="font-size: 0.65rem; letter-spacing: 1px;">Jogos</small>
-                   </div>
-                   <div class="col-3 border-end border-secondary">
-                      <h4 class="m-0 text-success fw-bold">{{ statsGerais.vitorias }}</h4>
-                      <small class="text-muted text-uppercase" style="font-size: 0.65rem; letter-spacing: 1px;">Vitórias</small>
-                   </div>
-                   <div class="col-3 border-end border-secondary">
-                      <h4 class="m-0 text-warning fw-bold">{{ statsGerais.empates }}</h4>
-                      <small class="text-muted text-uppercase" style="font-size: 0.65rem; letter-spacing: 1px;">Empates</small>
-                   </div>
-                   <div class="col-3">
-                      <h4 class="m-0 text-danger fw-bold">{{ statsGerais.derrotas }}</h4>
-                      <small class="text-muted text-uppercase" style="font-size: 0.65rem; letter-spacing: 1px;">Derrotas</small>
-                   </div>
-                </div>
 
-                <!-- Section Title -->
-                <div class="bg-black bg-opacity-25 px-3 py-1 border-bottom border-secondary">
-                    <small class="text-muted fw-bold text-uppercase" style="font-size: 0.7rem;">Top Artilheiros</small>
-                </div>
+        </div>
 
-                <!-- Scorers Table -->
-                <table class="table table-dark table-sm mb-0">
-                   <tbody>
-                      <tr v-for="(art, idx) in topArtilheiros" :key="idx">
-                         <td class="ps-3 border-secondary text-truncate" style="max-width: 150px;">
-                             <span :class="{'text-warning': idx === 0}">{{ idx + 1 }}.</span> {{ art.nome }}
-                         </td>
-                         <td class="text-center fw-bold text-success border-secondary">{{ art.gols }}</td>
-                      </tr>
-                      <tr v-if="topArtilheiros.length === 0">
-                         <td colspan="2" class="text-center py-3 text-muted">Sem dados.</td>
-                      </tr>
-                   </tbody>
-                </table>
+        <!-- COLUNA LATERAL (Direita) -->
+        <div class="col-12 col-lg-4">
+            
+            <!-- TOP ARTILHEIROS (MODERNIZADO) -->
+            <div class="card bg-dark border-secondary border-opacity-50 mb-3 shadow-sm overflow-hidden">
+               <div class="card-header border-secondary border-opacity-25 bg-secondary bg-opacity-10 text-white d-flex justify-content-between align-items-center py-3">
+                  <span class="fw-bold small text-uppercase ls-1 d-flex align-items-center">
+                      <i class="bi bi-person-badge me-2 text-primary fs-5"></i>
+                      Artilharia Histórica
+                  </span>
+               </div>
+               
+               <div v-if="topArtilheiros.length > 0" class="list-group list-group-flush bg-transparent">
+                  <div v-for="(art, idx) in topArtilheiros" :key="idx" 
+                       class="list-group-item bg-transparent border-secondary border-opacity-10 text-white d-flex align-items-center justify-content-between px-3 py-3 position-relative hover-bg-dark transition-colors">
+                       
+                       <!-- Efeito de Hover -->
+                       <div class="position-absolute start-0 top-0 bottom-0 bg-primary opacity-0 transition-all hover-bar" style="width: 4px;"></div>
+                       
+                       <div class="d-flex align-items-center gap-2 overflow-hidden">
+                          <!-- 1. Ranking / Medalha -->
+                          <div class="flex-shrink-0 d-flex justify-content-center align-items-center" style="width: 32px; height: 32px;">
+                              <span v-if="idx === 0" class="fs-4" title="1º Lugar">🥇</span>
+                              <span v-else-if="idx === 1" class="fs-4" title="2º Lugar">🥈</span>
+                              <span v-else-if="idx === 2" class="fs-4" title="3º Lugar">🥉</span>
+                              <span v-else class="text-secondary fw-bold fs-6 opacity-50">{{ idx + 1 }}º</span>
+                          </div>
+
+                          <!-- 2. Camisa do Jogador (NOVO) -->
+                          <div class="position-relative d-flex justify-content-center align-items-center mx-1" style="width: 38px; height: 38px;">
+                              <!-- SVG da Camisa -->
+                              <svg viewBox="0 0 24 24" class="w-100 h-100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M12 2C9 2 7 3.5 7 5L4 6L5 10L8 9V20H16V9L19 10L20 6L17 5C17 3.5 15 2 12 2Z" 
+                                        :fill="time.cores && time.cores.length > 0 ? time.cores[0].interno : '#333'"
+                                        :stroke="time.cores && time.cores.length > 0 ? time.cores[0].externo : '#666'"
+                                        stroke-width="1.5"
+                                        stroke-linejoin="round"/>
+                              </svg>
+                              
+                              <!-- Número -->
+                              <span class="position-absolute fw-bold" 
+                                    :style="{ 
+                                        color: time.cores && time.cores.length > 0 ? time.cores[0].externo : '#fff',
+                                        fontSize: '0.75rem', 
+                                        marginTop: '1px',
+                                        textShadow: '0px 1px 2px rgba(0,0,0,0.8)' 
+                                    }">
+                                  {{ art.numero || '?' }}
+                              </span>
+                          </div>
+                          
+                          <!-- 3. Nome do Jogador -->
+                          <div class="d-flex flex-column lh-1 overflow-hidden ms-1">
+                              <span class="fw-bold text-truncate" :class="idx < 3 ? 'text-white' : 'text-white-50'" style="font-size: 0.95rem;">
+                                  {{ isNaN(art.nome) ? art.nome : 'Jogador sem nome' }}
+                              </span>
+                          </div>
+                       </div>
+                       
+                       <!-- Gols -->
+                       <div class="d-flex flex-column align-items-end lh-1">
+                           <span class="h5 mb-0 fw-bold" :class="idx === 0 ? 'text-warning' : 'text-primary'">{{ art.gols }}</span>
+                           <span class="text-muted small text-uppercase" style="font-size: 0.6rem; letter-spacing: 1px;">gols</span>
+                       </div>
+                  </div>
+               </div>
+               
+               <div v-else class="p-5 text-center text-muted small fst-italic">
+                   <i class="bi bi-emoji-frown fs-1 mb-2 d-block opacity-25"></i>
+                   Nenhum artilheiro registrado.
+               </div>
+            </div>
+
+             <!-- ESTATÍSTICAS E GRÁFICOS -->
+             <div class="d-flex justify-content-between align-items-center mb-2 mt-4 border-bottom border-secondary border-opacity-50 pb-2">
+                 <h6 class="text-primary mb-0 fw-bold ls-1 small text-uppercase"><i class="bi bi-graph-up me-2"></i>Análise de Performance</h6>
+                 <select class="form-select form-select-sm w-auto bg-dark text-light border-secondary shadow-none py-0 px-2 small" 
+                         v-model="competicaoFiltro" @change="prepararGrafico" style="height: 24px; font-size: 0.75rem;">
+                     <option value="TODAS">Total</option>
+                     <option v-for="c in estatisticasPorCompeticao" :key="c.nome" :value="c.nome">{{ c.nome }}</option>
+                 </select>
              </div>
-          </div>
-       </div>
+
+             <div class="card bg-dark border-secondary border-opacity-50 mb-3 shadow-sm">
+               <div class="card-body p-2 position-relative">
+                 <h6 class="position-absolute top-0 start-0 m-2 badge bg-dark border border-secondary text-white-50 fw-normal">Aproveitamento (%)</h6>
+                 <div v-if="chartSeries[0].data.length > 0">
+                    <apexchart type="line" height="200" :options="chartOptions" :series="chartSeries"></apexchart>
+                 </div>
+                 <div v-else class="text-center py-5 text-muted small">
+                    <i class="bi bi-bar-chart fs-2 opacity-25 d-block mb-1"></i>
+                    Faltam dados históricos.
+                 </div>
+              </div>
+           </div>
+
+           <div class="card bg-dark border-secondary border-opacity-50 mb-3 shadow-sm">
+              <div class="card-body p-2 position-relative">
+                 <h6 class="position-absolute top-0 start-0 m-2 badge bg-dark border border-secondary text-white-50 fw-normal">Colocação Final</h6>
+                 <div v-if="chartSeriesColocacao.length > 0">
+                    <apexchart type="line" height="200" :options="chartOptionsColocacao" :series="chartSeriesColocacao"></apexchart>
+                 </div>
+                 <div v-else class="text-center py-5 text-muted small">
+                    <i class="bi bi-sort-numeric-down fs-2 opacity-25 d-block mb-1"></i>
+                    Dados insuficientes.
+                 </div>
+              </div>
+           </div>
+
+        </div>
     </div>
-
 
 
   </div>
   <div v-else-if="carregando" class="text-center py-5">
-     <BSpinner variant="primary" />
+     <div class="spinner-grow text-primary" role="status">
+        <span class="visually-hidden">Carregando...</span>
+     </div>
   </div>
 </template>
 
 <script>
 import DbService from '../services/DbService.js';
-import { BButton, BSpinner } from 'bootstrap-vue-next';
+import { BButton } from 'bootstrap-vue-next'; // Mantendo apenas o BButton se necessario, mas troquei por button html
 import VueApexCharts from "vue3-apexcharts";
 
 export default {
   name: 'DashboardTime',
   components: { 
-    BButton, 
-    BSpinner,
     apexchart: VueApexCharts,
   },
   props: ['id'],
@@ -298,6 +448,8 @@ export default {
     return {
       time: null,
       historico: [],
+      mapaEdicoes: {}, // Novo cache para edições
+      tecnicoFiltro: 'TODOS', // Filtro de Técnico
       carregando: true,
       chartOptions: {
         chart: {
@@ -372,10 +524,71 @@ export default {
     };
   },
   computed: {
-    titulosAgrupados() {
-      if (!this.historico) return [];
-      const grupos = {};
+    // Lista TODOS os técnicos que já comandaram o time em pelo menos 1 jogo oficial
+    listaTecnicosDoTime() {
+      if (!this.historico || !this.time) return [];
+      const tecnicosSet = new Set();
+      
       this.historico.forEach(h => {
+        const jogos = h.jogos || []; // Garante array
+        const confrontos = jogos.filter(j => j.finalizado && (j.timeA?.id == this.time.id || j.timeB?.id == this.time.id));
+
+        confrontos.forEach(j => {
+            let tec = null;
+            if (j.timeA?.id == this.time.id) tec = j.timeA.tecnico;
+            else if (j.timeB?.id == this.time.id) tec = j.timeB.tecnico;
+
+            if (tec) {
+                const nomeResolvido = this.resolverNomeTecnico(tec);
+                if (nomeResolvido) tecnicosSet.add(nomeResolvido);
+            }
+        });
+
+        // Também tentar pegar do resumo se não tiver jogos detalhados (ex: legado)
+        const tabela = h.tabelaResumo || [];
+        const stats = tabela.find(t => t.id == this.time.id);
+        if (stats && stats.tecnico) {
+            tecnicosSet.add(this.resolverNomeTecnico(stats.tecnico));
+        }
+      });
+
+      return Array.from(tecnicosSet).sort();
+    },
+
+    // Filtra histórico e recalcula TUDO com base no técnico
+    historicoFiltrado() {
+        if (!this.historico) return [];
+        
+        // Se for TODOS, retorna original
+        if (this.tecnicoFiltro === 'TODOS') return this.historico;
+
+        // Se tiver filtro, retorna apenas campeonatos onde o técnico atuou
+        return this.historico.filter(h => {
+             const jogos = h.jogos || [];
+             const confrontos = jogos.filter(j => 
+                 j.finalizado && (
+                    (j.timeA?.id == this.time.id && this.resolverNomeTecnico(j.timeA.tecnico) === this.tecnicoFiltro) || 
+                    (j.timeB?.id == this.time.id && this.resolverNomeTecnico(j.timeB.tecnico) === this.tecnicoFiltro)
+                 )
+             );
+             // Se houver pelo menos 1 jogo comandado por ele, inclui campeonato
+             // OU se ele consta como técnico principal no resumo
+             const tabela = h.tabelaResumo || [];
+             const stats = tabela.find(t => t.id == this.time.id);
+             const ehTecnicoPrincipal = stats && this.resolverNomeTecnico(stats.tecnico) === this.tecnicoFiltro;
+
+             return confrontos.length > 0 || ehTecnicoPrincipal;
+        });
+    },
+
+    titulosAgrupados() {
+      // Usa historicoFiltrado para só contar títulos onde o técnico participou
+      const base = this.historicoFiltrado; 
+      if (!base) return [];
+
+      const grupos = {};
+      base.forEach(h => {
+        // Só conta título se time foi campeão E o técnico participou da campanha
         if (h.campeao?.id === this.time?.id) {
            const nomeNorm = h.nome.trim(); 
            if (!grupos[nomeNorm]) {
@@ -390,41 +603,73 @@ export default {
            grupos[nomeNorm].conquistas.push({
              ano: new Date(h.dataFim).getFullYear(),
              tecnico: h.campeao.tecnico,
-             data: h.dataFim
+             data: h.dataFim,
+             edicao: this.mapaEdicoes[h.idCampeonato] || '?'
            });
         }
       });
       return Object.values(grupos).sort((a,b) => b.qtd - a.qtd);
     },
+
     totalTitulos() {
-      if (!this.historico) return 0;
-      return this.historico.filter(h => h.campeao?.id === this.time?.id).length;
+      return this.titulosAgrupados.reduce((acc, g) => acc + g.qtd, 0);
     },
+
     totalGols() {
-      if (!this.historico) return 0;
-      let total = 0;
-      this.historico.forEach(h => {
-        (h.artilheiros || []).forEach(art => {
-          if (art.timeId === this.time?.id) total += art.gols;
-        });
-      });
-      return total;
+      // Recalcula gols baseado nos jogos filtrados
+      return this.statsGerais.golsPro;
     },
+
     statsGerais() {
-      const stats = { jogos: 0, vitorias: 0, empates: 0, derrotas: 0 };
-      if (!this.historico) return stats;
+      // RECALCULO TOTAL BASEADO NOS JOGOS FILTRADOS
+      const stats = { jogos: 0, vitorias: 0, empates: 0, derrotas: 0, golsPro: 0, golsContra: 0 };
       
-      this.historico.forEach(h => {
-         const snapshotTime = h.tabelaResumo?.find(t => t.id === this.time?.id);
-         if (snapshotTime) {
-            stats.jogos += (snapshotTime.jogos || 0);
-            stats.vitorias += (snapshotTime.vitorias || 0);
-            stats.empates += (snapshotTime.empates || 0);
-            stats.derrotas += (snapshotTime.derrotas || 0);
-         }
+      const fonte = this.historico || [];
+      
+      fonte.forEach(h => {
+         const jogos = h.jogos || [];
+         jogos.forEach(j => {
+             if (!j.finalizado) return;
+
+             let participou = false;
+             let meuTime = null; 
+             let placarA = parseInt(j.golsA);
+             let placarB = parseInt(j.golsB);
+             
+             // Identifica se é jogo do time e qual lado
+             if (j.timeA?.id == this.time.id) {
+                 meuTime = 'A';
+                 // Filtro de Técnico
+                 if (this.tecnicoFiltro === 'TODOS' || this.resolverNomeTecnico(j.timeA.tecnico) === this.tecnicoFiltro) {
+                     participou = true;
+                 }
+             } else if (j.timeB?.id == this.time.id) {
+                 meuTime = 'B';
+                 // Filtro de Técnico
+                 if (this.tecnicoFiltro === 'TODOS' || this.resolverNomeTecnico(j.timeB.tecnico) === this.tecnicoFiltro) {
+                     participou = true;
+                 }
+             }
+
+             if (participou && meuTime) {
+                 stats.jogos++;
+                 const golsFeitos = meuTime === 'A' ? placarA : placarB;
+                 const golsSofridos = meuTime === 'A' ? placarB : placarA;
+                 
+                 stats.golsPro += golsFeitos;
+                 stats.golsContra += golsSofridos;
+
+                 if (golsFeitos > golsSofridos) stats.vitorias++;
+                 else if (golsFeitos === golsSofridos) stats.empates++;
+                 else stats.derrotas++;
+             }
+         });
       });
+
       return stats;
     },
+    
+    saldoGols() { return this.statsGerais.golsPro - this.statsGerais.golsContra; },
     aproveitamento() {
        const s = this.statsGerais;
        if (s.jogos === 0) return 0;
@@ -432,6 +677,87 @@ export default {
        const maxPontos = s.jogos * 3;
        return ((pontos / maxPontos) * 100).toFixed(1);
     },
+
+    participacoes() {
+      if (!this.time || !this.historico) return [];
+      
+      return this.historico
+        .map(h => {
+           // Filtra jogos relevantes para este técnico neste campeonato
+           const confrontos = (h.jogos || []).filter(j => {
+               if (!j.finalizado) return false;
+               if (j.timeA?.id == this.time.id) {
+                   return this.tecnicoFiltro === 'TODOS' || this.resolverNomeTecnico(j.timeA.tecnico) === this.tecnicoFiltro;
+               }
+               if (j.timeB?.id == this.time.id) {
+                   return this.tecnicoFiltro === 'TODOS' || this.resolverNomeTecnico(j.timeB.tecnico) === this.tecnicoFiltro;
+               }
+               return false;
+           });
+
+           // Se filtro ativo e 0 jogos, retorna null (não participou desta comp sob comando dele)
+           // EXCETO se ele for o técnico principal declarado (para casos legados sem detalhe de jogo)
+           const tabela = h.tabelaResumo || [];
+           const statsOriginal = tabela.find(t => t.id == this.time.id);
+           const ehTecnicoPrincipal = statsOriginal && this.resolverNomeTecnico(statsOriginal.tecnico) === this.tecnicoFiltro;
+
+           // FIX: Garantir que o time realmente participou (tem jogos ou está na tabela)
+           // Independentemente do filtro de técnico, se não tem registro, não deve aparecer.
+           const participouRealmente = confrontos.length > 0 || statsOriginal;
+           
+           if (!participouRealmente) return null;
+
+           if (this.tecnicoFiltro !== 'TODOS' && confrontos.length === 0 && !ehTecnicoPrincipal) {
+               return null; 
+           }
+
+           // Recalcula stats para o card (V/E/D) baseados nos confrontos filtrados
+           let v = 0, e = 0, d = 0, gp = 0;
+           confrontos.forEach(j => {
+               const meuLado = j.timeA?.id == this.time.id ? 'A' : 'B';
+               const gF = meuLado === 'A' ? parseInt(j.golsA) : parseInt(j.golsB);
+               const gS = meuLado === 'A' ? parseInt(j.golsB) : parseInt(j.golsA);
+               gp += gF;
+               if (gF > gS) v++;
+               else if (gF === gS) e++;
+               else d++;
+           });
+
+           const posicao = statsOriginal ? (tabela.findIndex(t => t.id == this.time.id) + 1) : '-';
+
+           // Recupera lista de técnicos para exibição
+           const tecnicosSet = new Set();
+           if (this.tecnicoFiltro === 'TODOS') {
+                confrontos.forEach(j => {
+                   let t = j.timeA?.id == this.time.id ? j.timeA.tecnico : j.timeB.tecnico;
+                   if (t) tecnicosSet.add(this.resolverNomeTecnico(t));
+                });
+                if (statsOriginal?.tecnico) tecnicosSet.add(this.resolverNomeTecnico(statsOriginal.tecnico));
+           } else {
+                tecnicosSet.add(this.tecnicoFiltro);
+           }
+
+           return {
+            id: h.idCampeonato,
+            nomeCamp: h.nome,
+            data: h.dataFim,
+            urlTrofeu: h.urlTrofeu,
+            posicao: posicao,
+            vitorias: v, // Stats Recalculados
+            empates: e,
+            derrotas: d,
+            golsPro: gp,
+            confrontos: confrontos, // Jogos filtrados
+            aberto: !!this.expandidio[h.idCampeonato],
+            adicionarNacionalidade: h.adicionarNacionalidade,
+            tecnico: Array.from(tecnicosSet).join(' / '),
+            edicao: this.mapaEdicoes[h.idCampeonato] || '?'
+          };
+        })
+        .filter(Boolean)
+        .sort((a,b) => new Date(b.data) - new Date(a.data));
+    },
+
     estatisticasPorCompeticao() {
         if (!this.participacoes) return [];
         const comps = {};
@@ -450,82 +776,47 @@ export default {
         });
     },
     topArtilheiros() {
-      if (!this.historico) return [];
+      // Usa historicoFiltrado para refletir a seleção do técnico
+      const base = this.historicoFiltrado || [];
       const mapa = {};
-      this.historico.forEach(h => {
+      
+      base.forEach(h => {
         (h.artilheiros || []).forEach(art => {
-          if (art.timeId === this.time?.id) {
-            if (!mapa[art.nome]) mapa[art.nome] = 0;
-            mapa[art.nome] += art.gols;
+           // Defensive check: Ensure art object and name exist
+           if (art && art.timeId === this.time?.id && art.nome) {
+            const nomeKey = String(art.nome).trim(); // Force string conversion
+            if (!mapa[nomeKey]) mapa[nomeKey] = 0;
+            mapa[nomeKey] += (Number(art.gols) || 0);
           }
         });
       });
+
+      // Cache de jogadores para lookup rápido
+      const jogadoresDoTime = this.time?.jogadores || [];
+
       return Object.entries(mapa)
-        .map(([nome, gols]) => ({ nome, gols }))
+        .map(([nome, gols]) => {
+            let numero = null;
+            
+            // 1. Se o nome for numérico, ele É o número
+            if (!isNaN(nome)) {
+                numero = parseInt(nome);
+            } 
+            // 2. Se for texto, busca no elenco
+            else {
+                const jogador = jogadoresDoTime.find(j => j.nome && j.nome.trim().toLowerCase() === nome.trim().toLowerCase());
+                if (jogador) numero = jogador.numero;
+            }
+
+            return { nome, gols, numero };
+        })
         .sort((a,b) => b.gols - a.gols)
         .slice(0, 5);
-    },
-    participacoes() {
-      if (!this.time || !this.historico) return [];
-      
-      return this.historico
-        .map(h => {
-          // Proteção contra tabelaResumo nula (campeonatos antigos)
-          const tabela = h.tabelaResumo || [];
-          const stats = tabela.find(t => t.id === this.time.id);
-          if (!stats) return null;
-
-          const posicao = tabela.findIndex(t => t.id === this.time.id) + 1;
-          
-          const confrontos = (h.jogos || []).filter(j => 
-            j.finalizado && (j.timeA?.id == this.time.id || j.timeB?.id == this.time.id)
-          );
-          
-           // Agregar TODOS os técnicos que comandaram o time na campanha
-           const tecnicosSet = new Set();
-           
-           // 1. Tenta pegar do resumo (se houver)
-           if (stats.tecnico) {
-               const nome = this.resolverNomeTecnico(stats.tecnico);
-               if (nome) tecnicosSet.add(nome);
-           }
-
-           // 2. Varre os jogos para pegar técnicos que comandaram em partidas específicas
-           confrontos.forEach(jogo => {
-               let tec = null;
-               if (jogo.timeA.id === this.time.id) {
-                   tec = jogo.timeA.tecnico;
-               } else if (jogo.timeB.id === this.time.id) {
-                   tec = jogo.timeB.tecnico;
-               }
-
-               if (tec) {
-                   const nome = this.resolverNomeTecnico(tec);
-                   if (nome) tecnicosSet.add(nome);
-               }
-           });
-
-           // Converte o Set para uma string "Nome1 / Nome2"
-           const tecnicoDisplay = Array.from(tecnicosSet).join(' / ');
-
-           return {
-            id: h.idCampeonato,
-            nomeCamp: h.nome,
-            data: h.dataFim,
-            urlTrofeu: h.urlTrofeu,
-            posicao: posicao,
-            vitorias: stats.vitorias || 0,
-            empates: stats.empates || 0,
-            derrotas: stats.derrotas || 0,
-            golsPro: stats.golsPro || 0,
-            confrontos: confrontos,
-            aberto: !!this.expandidio[h.idCampeonato],
-            adicionarNacionalidade: h.adicionarNacionalidade, // ✅ Propaga a configuração
-            tecnico: tecnicoDisplay // 🆕 Técnico (String formatada)
-          };
-        })
-        .filter(Boolean)
-        .sort((a,b) => new Date(b.data) - new Date(a.data));
+    }
+  },
+  watch: {
+    tecnicoFiltro() {
+       this.prepararGrafico();
     }
   },
   async mounted() {
@@ -541,6 +832,9 @@ export default {
          return acc;
       }, {});
 
+      // LÓGICA DE EDIÇÃO
+      this.calcularEdicoes();
+
       this.prepararGrafico();
     } catch (e) {
       console.error(e);
@@ -549,6 +843,27 @@ export default {
     }
   },
   methods: {
+    calcularEdicoes() {
+       if (!this.historico) return;
+       
+       // 1. Agrupar historico por nome da competicao
+       const comps = {};
+       this.historico.forEach(h => {
+           if (!h.nome) return; // Proteção contra crash
+           const nome = String(h.nome).trim();
+           if (!comps[nome]) comps[nome] = [];
+           comps[nome].push(h);
+       });
+
+       // 2. Ordenar por data e atribuir número da edição
+       Object.values(comps).forEach(lista => {
+           lista.sort((a,b) => new Date(a.dataFim) - new Date(b.dataFim));
+           lista.forEach((h, index) => {
+               this.mapaEdicoes[h.idCampeonato] = index + 1;
+           });
+       });
+    },
+
     // 🔹 Helper para corrigir nomes antigos (Apelido -> Nome Completo)
     resolverNomeTecnico(nomeOuApelido) {
        if (!nomeOuApelido) return 'Téc. Desconhecido';
@@ -574,30 +889,63 @@ export default {
            listaCompeticoes = listaCompeticoes.filter(c => c.nome === this.competicaoFiltro);
        }
 
-       // 1. Descobrir o máximo de participações em um único torneio para definir o eixo X (Compartilhado)
-       let maxEdicoes = 0;
+       // 1. Descobrir o máximo de participações, mas agora vamos usar a EDIÇÃO REAL como categoria
+       // Em vez de 1..N, vamos pegar todas as edições distintas que aparecem nos dados filtrados
+       const edicoesSet = new Set();
        listaCompeticoes.forEach(comp => {
-           if (comp.participacoes.length > maxEdicoes) {
-               maxEdicoes = comp.participacoes.length;
-           }
+           comp.participacoes.forEach(p => {
+               // p.edicao já vem do mapaEdicoes calculado no mounted (1..N real da competição)
+               // Se p.edicao for '?', usamos um fallback
+               if (p.edicao && p.edicao !== '?') {
+                   edicoesSet.add(parseInt(p.edicao));
+               }
+           });
        });
 
-       // Criar categorias do Eixo X: "1ª Edição", "2ª Edição", etc.
-       const categoriasX = Array.from({ length: maxEdicoes }, (_, i) => `${i + 1}ª Edição`);
+       // Ordena edições para o eixo X (ex: [4, 5, 8])
+       const edicoesOrdenadas = Array.from(edicoesSet).sort((a,b) => a - b);
+       
+       // Se não tiver nada, fallback para vazio
+       const categoriasX = edicoesOrdenadas.length > 0 
+            ? edicoesOrdenadas.map(e => `${e}ª Edição`)
+            : [];
 
        // 1. Aproveitamento por Competição (Refatorado)
        const neonColors = ['#00ff00', '#00d2ff', '#ff00ff', '#ffff00', '#ff4500']; // Verde Neon, Azul Neon, Magenta, Amarelo, Laranja
        
        this.chartOptions = {
           ...this.chartOptions,
-          chart: { ...this.chartOptions.chart, type: 'line', background: 'transparent' }, 
+          chart: { 
+              ...this.chartOptions.chart, 
+              type: 'line', 
+              background: 'transparent',
+              height: 400, // Aumentado de 350 (implícito) para 400
+              zoom: { enabled: false }
+          }, 
           colors: neonColors,
-          stroke: { curve: 'smooth', width: 4 }, // Linha mais grossa e visível
+          stroke: { curve: 'smooth', width: 3 }, // Reduzido de 4 para 3
           markers: { size: 5, strokeWidth: 0, hover: { size: 7 } },
           fill: { type: 'solid', opacity: 1 }, // Garante que a linha seja sólida e visível
           xaxis: {
              ...this.chartOptions.xaxis,
              categories: categoriasX
+          },
+          tooltip: {
+               y: {
+                   formatter: (val, opts) => {
+                       const seriesIndex = opts.seriesIndex;
+                       const dataPointIndex = opts.dataPointIndex;
+                       const w = opts.w;
+                       const seriesData = w.config.series[seriesIndex].data;
+                       const dataPoint = seriesData[dataPointIndex];
+                       
+                       const tecnico = dataPoint && dataPoint.tecnico ? dataPoint.tecnico : null;
+                       const nomeTecnico = tecnico || 'Sem Técnico';
+                       
+                       return `${val.toFixed(1)}% (${nomeTecnico})`;
+                   }
+               },
+               theme: 'dark'
           }
        };
 
@@ -612,10 +960,11 @@ export default {
                    aproveitamento = (pontos / (totalJogos * 3)) * 100;
                }
 
+               // O x deve bater com a string da categoria
                return {
-                   x: `${index + 1}ª Edição`,
+                   x: `${p.edicao}ª Edição`, 
                    y: parseFloat(aproveitamento.toFixed(1)),
-                   tecnico: p.tecnico
+                   tecnico: p.tecnico // Metadado extra para tooltip se precisar customizar
                };
            });
 
@@ -631,11 +980,18 @@ export default {
            return;
        }
 
-       // (Reutiliza maxEdicoes e categoriasX calculados acima)
        this.chartOptionsColocacao = {
            ...this.chartOptionsColocacao,
-           colors: neonColors, // Aplica as mesmas cores neon
-           stroke: { curve: 'monotoneCubic', width: 4 }, // Linha grossa
+           colors: neonColors,
+           chart: { 
+               ...this.chartOptions.chart, 
+               type: 'line', 
+               background: 'transparent', 
+               height: 400,
+               zoom: { enabled: false }
+           },
+           colors: neonColors,
+           stroke: { curve: 'monotoneCubic', width: 3 }, // Reduzido de 4 para 3
            markers: { size: 5 },
            xaxis: {
                ...this.chartOptionsColocacao.xaxis,
@@ -647,13 +1003,10 @@ export default {
                        const seriesIndex = opts.seriesIndex;
                        const dataPointIndex = opts.dataPointIndex;
                        const w = opts.w;
-                       // Recupera o dado original para pegar o técnico
                        const seriesData = w.config.series[seriesIndex].data;
                        const dataPoint = seriesData[dataPointIndex];
                        
-                       // Se dataPoint for objeto (novo formato), acessa diretamento. Se for array/número, trata.
                        const tecnico = dataPoint && dataPoint.tecnico ? dataPoint.tecnico : null;
-                       // O técnico já vem formatado como string agora (Ex: "Fabiano / Marcos")
                        const nomeTecnico = tecnico || 'Sem Técnico';
                        
                        return `${val}º lugar (${nomeTecnico})`;
@@ -662,15 +1015,17 @@ export default {
            }
        };
 
-       const series = listaCompeticoes.map(comp => {
-           // Ordena cronologicamente
+       this.chartSeriesColocacao = listaCompeticoes.map(comp => {
            const partsOrdenadas = [...comp.participacoes].sort((a, b) => new Date(a.data) - new Date(b.data));
-           
-           // Mapeia para objetos { x: '1ª Edição', y: posicao, tecnico: ... }
-           const data = partsOrdenadas.map((p, index) => {
+
+           const data = partsOrdenadas.map(p => {
+               // Converter posição string '1' ou 'Campeão' -> numero
+               let pos = parseInt(p.posicao);
+               if (isNaN(pos)) pos = null;
+
                return {
-                   x: `${index + 1}ª Edição`,
-                   y: p.posicao,
+                   x: `${p.edicao}ª Edição`,
+                   y: pos,
                    tecnico: p.tecnico
                };
            });
@@ -680,17 +1035,47 @@ export default {
                data: data
            };
        });
-
-       this.chartSeriesColocacao = series;
     }
   }
 };
 </script>
 
 <style scoped>
-.trofeu-mini {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
+.hover-scale:hover {
+    transform: scale(1.03);
+}
+.hover-elevate:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+.hover-bg-light:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+.hover-bg-dark:hover {
+    background-color: rgba(0, 0, 0, 0.15) !important;
+}
+.hover-bar:hover {
+    opacity: 1 !important;
+}
+.transition-all {
+    transition: all 0.2s ease-in-out;
+}
+.transition-colors {
+    transition: background-color 0.2s ease;
+}
+.text-shadow {
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+.drop-shadow-gold {
+    filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.6));
+}
+.drop-shadow-silver {
+    filter: drop-shadow(0 0 3px rgba(192, 192, 192, 0.5));
+}
+.drop-shadow-bronze {
+    filter: drop-shadow(0 0 3px rgba(205, 127, 50, 0.5));
+}
+.rotate-180 {
+    transform: rotate(180deg);
 }
 </style>

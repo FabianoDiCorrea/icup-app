@@ -201,9 +201,15 @@
     <div class="d-flex flex-column align-items-center">
 
         <!-- TROFÉU ALINHADO AO PLACAR (FINAL) -->
-        <div v-if="nomeFaseAtual === 'Final' && campeonato.urlTrofeu" class="mb-2">
+        <div v-if="jogo.fase === 'Final' && campeonato.urlTrofeu" class="mb-2">
              <img :src="campeonato.urlTrofeu" 
                   style="height: 70px; width: auto; object-fit: contain; filter: drop-shadow(0 0 10px rgba(255,215,0,0.5));" />
+        </div>
+        <!-- LABEL DISPUTA 3º LUGAR -->
+        <div v-if="jogo.fase && (jogo.fase.includes('3º') || jogo.fase.includes('Terceiro'))" class="mb-2">
+             <span class="badge bg-warning text-dark border border-warning bg-opacity-50 shadow-sm" style="background-color: #cd7f32 !important; border-color: #a0522d !important; font-size: 0.75rem;">
+                <i class="bi bi-award-fill me-1"></i>Disputa 3º Lugar
+             </span>
         </div>
 
         <!-- DISPLAY CRONÔMETRO LISTA -->
@@ -1403,27 +1409,39 @@ if (existeConfrontoSemVencedor) {
         async confirmarAvancoFase() {
             const pendentes = this.confrontosEncerramento.some(c => !c.vencedorId);
             if (pendentes) { alert("Selecione todos os vencedores."); return; }
+
+            // 1. Coleta Vencedores
             const vencedoresObj = this.confrontosEncerramento.map(conf => {
                 if (conf.vencedorId == conf.timeA.id) return conf.timeA;
                 if (conf.vencedorId == conf.timeB.id) return conf.timeB;
                 return null;
             }).filter(v => v !== null);
 
-            // 🔥 DESCOBRE A ÚLTIMA RODADA EXISTENTE
-const ultimaRodada = Math.max(
-  ...this.campeonato.jogos.map(j => j.rodada || 0)
-);
+            // 2. Coleta Perdedores (Apenas se for Semifinal para disputa de 3º)
+            let perdedoresObj = [];
+            if (this.nomeFaseAtual === 'Semifinal') {
+                perdedoresObj = this.confrontosEncerramento.map(conf => {
+                    if (conf.vencedorId == conf.timeA.id) return conf.timeB; // Perdeu
+                    if (conf.vencedorId == conf.timeB.id) return conf.timeA; // Perdeu
+                    return null;
+                }).filter(v => v !== null);
+            }
 
-// 🔥 A PRÓXIMA FASE TEM QUE SER UMA NOVA RODADA
-const novaRodada = ultimaRodada + 1;
+            // 🔥 DESCOBRE A ÚLTIMA RODADA EXISTENTE
+            const ultimaRodada = Math.max(
+              ...this.campeonato.jogos.map(j => j.rodada || 0)
+            );
+
+            // 🔥 A PRÓXIMA FASE TEM QUE SER UMA NOVA RODADA
+            const novaRodada = ultimaRodada + 1;
 
             try {
                 this.carregando = true;
                 await DbService.avancarFaseMataMata(
-  this.campeonato.id,
-  vencedoresObj,
-  novaRodada // 🔥 AQUI ESTÁ A CORREÇÃO
-);
+                  this.campeonato.id,
+                  vencedoresObj,
+                  perdedoresObj // ✅ Passa os perdedores (será [] se não for semi)
+                );
 
                 this.modalEncerramentoAberto = false;
                 alert("Nova fase gerada com sucesso!");
@@ -1688,6 +1706,7 @@ input[type=number]::-webkit-outer-spin-button {
 
 input[type=number] {
     -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 .jogo-row:last-child {

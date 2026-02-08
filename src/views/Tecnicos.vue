@@ -59,16 +59,27 @@
           :key="t.id"
           class="bg-secondary bg-opacity-50 p-2 mb-2 rounded d-flex justify-content-between align-items-center"
         >
-          <span>
-            {{ t.nome }} <strong>- {{ t.apelido }}</strong>
-          </span>
+          <div class="d-flex align-items-center gap-2">
+            <span class="fw-bold text-primary">{{ t.nome.charAt(0).toUpperCase() }}</span>
+            <span>
+              {{ t.nome }} <strong>- {{ t.apelido }}</strong>
+            </span>
+          </div>
 
-          <button
-            class="btn btn-sm btn-danger fw-bold"
-            @click="remover(t.id)"
-          >
-            Excluir
-          </button>
+          <div class="d-flex gap-2">
+            <router-link
+              :to="`/dashboard/tecnico/${t.nome}`"
+              class="btn btn-sm btn-outline-info fw-bold"
+            >
+              Perfil
+            </router-link>
+            <button
+              class="btn btn-sm btn-danger fw-bold"
+              @click="remover(t.id)"
+            >
+              Excluir
+            </button>
+          </div>
         </div>
 
       </div>

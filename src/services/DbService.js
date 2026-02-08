@@ -248,7 +248,7 @@ export default {
     },
 
     // AVANÇAR FASE (MATA-MATA)
-    async avancarFaseMataMata(idCampeonato, vencedores) {
+    async avancarFaseMataMata(idCampeonato, vencedores, perdedores = []) {
         const listaCamps = await this.getCampeonatos();
         const indexCamp = listaCamps.findIndex(
             c => String(c.id) === String(idCampeonato)
@@ -282,7 +282,8 @@ export default {
         let novosJogos = gerarJogosProximaFaseMataMata(
             vencedores,
             campeonato.turnos,
-            rodadaAtual
+            rodadaAtual,
+            perdedores
         );
 
         novosJogos = novosJogos.map(j => ({
@@ -371,12 +372,16 @@ export default {
         try {
             const times = await this.getTimes();
             const campeonatos = await this.getCampeonatos();
+            const historico = await this.getHistorico();
+            const tecnicos = await this.getTecnicos();
 
             const backupData = {
-                version: '1.0',
+                version: '1.2', // Incrementada versão para indicar suporte a historico/tecnicos
                 dataExportacao: new Date().toISOString(),
                 times: times,
-                campeonatos: campeonatos
+                campeonatos: campeonatos,
+                historico: historico,
+                tecnicos: tecnicos
             };
 
             return JSON.stringify(backupData, null, 2);
@@ -401,37 +406,61 @@ export default {
 
             let timesFinais = [];
             let campeonatosFinais = [];
+            let historicoFinal = []; // Novo
+            let tecnicosFinais = []; // Novo
 
             if (modo === 'MESCLAR') {
                 // 1. Recupera dados atuais do banco
                 const timesAtuais = await this.getTimes();
                 const campeonatosAtuais = await this.getCampeonatos();
+                const historicoAtual = await this.getHistorico();
+                const tecnicosAtuais = await this.getTecnicos();
 
                 // 2. Mescla Times (Usando Map para evitar duplicidade de ID)
-                // A ordem importa: primeiro os atuais, depois os novos sobrescrevem se ID for igual
                 const mapaTimes = new Map();
                 timesAtuais.forEach(t => mapaTimes.set(String(t.id), t));
                 dados.times.forEach(t => mapaTimes.set(String(t.id), t));
-
                 timesFinais = Array.from(mapaTimes.values());
 
                 // 3. Mescla Campeonatos
                 const mapaCamps = new Map();
                 campeonatosAtuais.forEach(c => mapaCamps.set(String(c.id), c));
                 dados.campeonatos.forEach(c => mapaCamps.set(String(c.id), c));
-
                 campeonatosFinais = Array.from(mapaCamps.values());
+
+                // 4. Mescla Histórico (Evita duplicação por ID do Campeonato no item de histórico)
+                // Assumindo que 1 campeonato gera 1 entrada de histórico por vez (ou lista)
+                // A chave única do histórico geralmente é o ID do campeonato + ID do time, mas aqui simplificamos
+                // Se o objeto de histórico tiver ID único, melhor. Se não, usamos JSON stringify como chave "pobre"
+                // OU confiamos que o histórico vem atrelado aos campeonatos.
+                // Melhor abordagem: ID do campeonato. Se já tem histórico daquele campeonato, substitui.
+                // Mas um campeonato pode ter N entradas de histórico (uma para cada time).
+                // Vamos usar um Set de strings para identificar duplicatas exatas.
+                const setHistorico = new Set(historicoAtual.map(h => JSON.stringify(h)));
+                (dados.historico || []).forEach(h => setHistorico.add(JSON.stringify(h)));
+                historicoFinal = Array.from(setHistorico).map(s => JSON.parse(s));
+
+
+                // 5. Mescla Técnicos
+                const mapaTecnicos = new Map();
+                tecnicosAtuais.forEach(t => mapaTecnicos.set(String(t.id), t));
+                (dados.tecnicos || []).forEach(t => mapaTecnicos.set(String(t.id), t));
+                tecnicosFinais = Array.from(mapaTecnicos.values());
 
             } else {
                 // Modo SUBSTITUIR: Usa apenas os dados do arquivo
                 await localforage.clear(); // Limpa tudo antes
                 timesFinais = dados.times;
                 campeonatosFinais = dados.campeonatos;
+                historicoFinal = dados.historico || [];
+                tecnicosFinais = dados.tecnicos || [];
             }
 
             // Salva os dados finais
             await localforage.setItem(KEYS.TIMES, timesFinais);
             await localforage.setItem(KEYS.CAMPEONATOS, campeonatosFinais);
+            await localforage.setItem(KEYS.HISTORICO, historicoFinal);
+            await localforage.setItem(KEYS.TECNICOS, tecnicosFinais);
 
             return true;
         } catch (error) {

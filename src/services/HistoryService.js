@@ -50,17 +50,24 @@ export default {
     /**
      * Calcula quem foi o campeão, vice e artilheiros
      */
+    /**
+     * Calcula quem foi o campeão, vice e artilheiros
+     */
     calcularEstatisticasFinais(camp) {
         const artilheiros = this.obterTopArtilheiros(camp);
         let campeao = null;
         let vice = null;
+        let terceiro = null;
+        let quarto = null;
 
         const jogos = camp.jogos || [];
 
         // Lógica para Mata-Mata ou Grupos com Mata-Mata
         if (camp.tipo === 'MATA_MATA' || (camp.tipo === 'GRUPOS' && jogos.some(j => j.fase))) {
+
+            // 1. FINAL (Decide 1º e 2º)
             const final = [...jogos]
-                .filter(j => j.finalizado && j.fase && (j.fase.toLowerCase().includes('final') && !j.fase.toLowerCase().includes('semifinal')))
+                .filter(j => j.finalizado && j.fase && (j.fase.toLowerCase() === 'final'))
                 .sort((a, b) => b.rodada - a.rodada)[0];
 
             if (final && final.timeA && final.timeB) {
@@ -73,6 +80,24 @@ export default {
                 } else {
                     campeao = camp.timesParticipantes.find(t => t.id === final.timeB.id);
                     vice = camp.timesParticipantes.find(t => t.id === final.timeA.id);
+                }
+            }
+
+            // 2. DISPUTA DE 3º LUGAR (Decide 3º e 4º)
+            const disputa3 = [...jogos]
+                .filter(j => j.finalizado && j.fase && (j.fase.toLowerCase().includes('3º') || j.fase.toLowerCase().includes('terceiro')))
+                .sort((a, b) => b.rodada - a.rodada)[0];
+
+            if (disputa3 && disputa3.timeA && disputa3.timeB) {
+                const totalA = (disputa3.golsA || 0) + (disputa3.penaltisA || 0);
+                const totalB = (disputa3.golsB || 0) + (disputa3.penaltisB || 0);
+
+                if (totalA > totalB) {
+                    terceiro = camp.timesParticipantes.find(t => t.id === disputa3.timeA.id);
+                    quarto = camp.timesParticipantes.find(t => t.id === disputa3.timeB.id);
+                } else {
+                    terceiro = camp.timesParticipantes.find(t => t.id === disputa3.timeB.id);
+                    quarto = camp.timesParticipantes.find(t => t.id === disputa3.timeA.id);
                 }
             }
         }
@@ -93,6 +118,8 @@ export default {
         return {
             campeao,
             vice,
+            terceiro,
+            quarto,
             artilheiros,
             totalGols
         };
@@ -103,11 +130,14 @@ export default {
         const times = camp.timesParticipantes || [];
         const jogos = camp.jogos || [];
 
+        // 1. Inicializa Stats
         times.forEach(time => {
             mapaStats[time.id] = {
                 id: time.id,
                 nome: time.nome,
-                tecnico: time.tecnico || null, // ✅ Salva o técnico
+                tecnico: time.tecnico || null,
+                escudo: time.escudo || time.urlLogo || time.logo || '',
+                bandeira: time.bandeira || '',
                 pontos: 0,
                 jogos: 0,
                 vitorias: 0,
@@ -115,15 +145,54 @@ export default {
                 derrotas: 0,
                 saldoGols: 0,
                 golsPro: 0,
-                golsContra: 0
+                golsContra: 0,
+                faseAlcancada: 0 // PESO PARA ORDENAÇÃO
             };
         });
 
+        // 2. Computa Jogos e Define Pesos de Fase
         jogos.forEach(jogo => {
-            if (!jogo.finalizado || !jogo.timeA || !jogo.timeB) return;
-            // Se for mata-mata, ignoramos para a tabela de classificação básica (estilo liga)
-            // A menos que queiramos estatísticas totais históricas. 
-            // Para o Dashboard, queremos TUDO que o time fez.
+            // Define PESO da fase para os times envolvidos
+            // Final = 100, 3º Lugar = 90, Semi = 80, Quartas = 70, Oitavas = 60, Grupos = 10
+            let pesoA = 10;
+            let pesoB = 10;
+
+            if (jogo.fase) {
+                const f = jogo.fase.toLowerCase();
+
+                if (f === 'final') {
+                    // Se finalizado, quem ganhou recebe +1 (101 vs 100)
+                    if (jogo.finalizado) {
+                        const golsA = (jogo.golsA || 0) + (jogo.penaltisA || 0);
+                        const golsB = (jogo.golsB || 0) + (jogo.penaltisB || 0);
+                        pesoA = golsA > golsB ? 101 : 100;
+                        pesoB = golsB > golsA ? 101 : 100;
+                    } else {
+                        pesoA = 100; pesoB = 100;
+                    }
+                }
+                else if (f.includes('3º') || f.includes('terceiro')) {
+                    if (jogo.finalizado) {
+                        const golsA = (jogo.golsA || 0) + (jogo.penaltisA || 0);
+                        const golsB = (jogo.golsB || 0) + (jogo.penaltisB || 0);
+                        pesoA = golsA > golsB ? 91 : 90;
+                        pesoB = golsB > golsA ? 91 : 90;
+                    } else {
+                        pesoA = 90; pesoB = 90;
+                    }
+                }
+                else if (f.includes('semifinal')) { pesoA = 80; pesoB = 80; }
+                else if (f.includes('quartas')) { pesoA = 70; pesoB = 70; }
+                else if (f.includes('oitavas')) { pesoA = 60; pesoB = 60; }
+                else if (f.includes('16 avos')) { pesoA = 50; pesoB = 50; }
+                else if (f.includes('playoff')) { pesoA = 40; pesoB = 40; }
+            }
+
+            // Atualiza peso se for maior que o atual (o time chegou pelo menos até aqui)
+            if (mapaStats[jogo.timeA.id]) mapaStats[jogo.timeA.id].faseAlcancada = Math.max(mapaStats[jogo.timeA.id].faseAlcancada, pesoA);
+            if (mapaStats[jogo.timeB.id]) mapaStats[jogo.timeB.id].faseAlcancada = Math.max(mapaStats[jogo.timeB.id].faseAlcancada, pesoB);
+
+            if (!jogo.finalizado) return;
 
             const tA = mapaStats[jogo.timeA.id];
             const tB = mapaStats[jogo.timeB.id];
@@ -146,13 +215,24 @@ export default {
             }
         });
 
+        // 3. Ordenação Final
         return Object.values(mapaStats).map(t => ({
             ...t,
             saldoGols: t.golsPro - t.golsContra
         })).sort((a, b) => {
+            // Critério 1: Fase Alcançada (Quem chegou mais longe fica na frente)
+            if (b.faseAlcancada !== a.faseAlcancada) return b.faseAlcancada - a.faseAlcancada;
+
+            // Critério 2: Pontos Totais (Campanha)
             if (b.pontos !== a.pontos) return b.pontos - a.pontos;
+
+            // Critério 3: Vitórias
             if (b.vitorias !== a.vitorias) return b.vitorias - a.vitorias;
+
+            // Critério 4: Saldo
             if (b.saldoGols !== a.saldoGols) return b.saldoGols - a.saldoGols;
+
+            // Critério 5: Gols Pró
             return b.golsPro - a.golsPro;
         });
     },
