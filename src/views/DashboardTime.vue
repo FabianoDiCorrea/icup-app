@@ -398,8 +398,8 @@
              <div class="card bg-dark border-secondary border-opacity-50 mb-3 shadow-sm">
                <div class="card-body p-2 position-relative">
                  <h6 class="position-absolute top-0 start-0 m-2 badge bg-dark border border-secondary text-white-50 fw-normal">Aproveitamento (%)</h6>
-                 <div v-if="chartSeries[0].data.length > 0">
-                    <apexchart type="line" height="200" :options="chartOptions" :series="chartSeries"></apexchart>
+                 <div v-if="chartSeries && chartSeries.length > 0 && chartSeries[0].data && chartSeries[0].data.length > 0">
+                    <apexchart v-if="renderizarGraficos" type="line" height="200" :options="chartOptions" :series="chartSeries"></apexchart>
                  </div>
                  <div v-else class="text-center py-5 text-muted small">
                     <i class="bi bi-bar-chart fs-2 opacity-25 d-block mb-1"></i>
@@ -412,7 +412,7 @@
               <div class="card-body p-2 position-relative">
                  <h6 class="position-absolute top-0 start-0 m-2 badge bg-dark border border-secondary text-white-50 fw-normal">Colocação Final</h6>
                  <div v-if="chartSeriesColocacao.length > 0">
-                    <apexchart type="line" height="200" :options="chartOptionsColocacao" :series="chartSeriesColocacao"></apexchart>
+                    <apexchart v-if="renderizarGraficos" type="line" height="200" :options="chartOptionsColocacao" :series="chartSeriesColocacao"></apexchart>
                  </div>
                  <div v-else class="text-center py-5 text-muted small">
                     <i class="bi bi-sort-numeric-down fs-2 opacity-25 d-block mb-1"></i>
@@ -520,7 +520,8 @@ export default {
       },
       expandidio: {}, // Controle de UI para expandir jogos
       mapaTecnicos: {}, // Cache de técnicos
-      competicaoFiltro: 'TODAS' // Filtro de competição para os gráficos
+      competicaoFiltro: 'TODAS', // Filtro de competição para os gráficos
+      renderizarGraficos: false // Controle para renderizar gráficos apenas após montagem completa
     };
   },
   computed: {
@@ -837,9 +838,15 @@ export default {
 
       this.prepararGrafico();
     } catch (e) {
-      console.error(e);
+      console.error("Erro ao carregar dashboard:", e);
     } finally {
       this.carregando = false;
+      // Pequeno delay para garantir que o DOM (e dimensões) esteja pronto para o ApexCharts
+      this.$nextTick(() => {
+          setTimeout(() => {
+              this.renderizarGraficos = true;
+          }, 300);
+      });
     }
   },
   methods: {
@@ -882,7 +889,8 @@ export default {
        this.expandidio[idCamp] = !this.expandidio[idCamp];
     },
     prepararGrafico() {
-       // 0. Filtrar competições baseadas na seleção
+       try {
+        // 0. Filtrar competições baseadas na seleção
        let listaCompeticoes = this.estatisticasPorCompeticao;
        
        if (this.competicaoFiltro !== 'TODAS') {
@@ -1035,6 +1043,11 @@ export default {
                data: data
            };
        });
+       } catch (error) {
+           console.error("Erro ao preparar gráficos:", error);
+           this.chartSeries = [];
+           this.chartSeriesColocacao = [];
+       }
     }
   }
 };

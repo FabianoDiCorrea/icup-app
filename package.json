@@ -7,6 +7,9 @@
     "build": "vue-cli-service build"
   },
   "dependencies": {
+    "@capacitor/android": "^8.0.2",
+    "@capacitor/cli": "^8.0.2",
+    "@capacitor/core": "^8.0.2",
     "apexcharts": "^5.3.6",
     "bootstrap": "^5.3.8",
     "bootstrap-vue-next": "^0.42.0",

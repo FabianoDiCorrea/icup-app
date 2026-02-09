@@ -101,6 +101,20 @@
         </div>
       </div>
 
+      <!-- Aviso de Nova Versão -->
+      <div v-if="novaVersaoDisponivel" class="fixed-bottom p-3">
+          <div class="alert alert-info shadow-lg border-info d-flex align-items-center justify-content-between mb-0" style="background: rgba(13, 202, 240, 0.95); backdrop-filter: blur(5px); color: #000;">
+              <div class="d-flex align-items-center gap-2">
+                  <i class="bi bi-cloud-arrow-down-fill fs-4"></i>
+                  <div>
+                      <strong>Nova versão disponível! (v{{ versaoRemota }})</strong>
+                      <div class="small">Há uma atualização pronta.</div>
+                  </div>
+              </div>
+              <button class="btn-close" @click="novaVersaoDisponivel = false"></button>
+          </div>
+      </div>
+
       <router-view />
 
     </main>
@@ -116,11 +130,15 @@
 
 <script>
 import DbService from './services/DbService.js';
+import VersionService from './services/VersionService.js';
+
 export default {
   data() {
     return {
       menuAberto: false, // Controla o estado do menu no mobile
-      exibirAvisoPorta: false
+      exibirAvisoPorta: false,
+      novaVersaoDisponivel: false,
+      versaoRemota: ''
     }
   },
   async mounted() {
@@ -142,7 +160,18 @@ export default {
 
     // (Opcional) Loga o uso de espaço no console para você monitorar
     await DbService.verificarEspaco();
-    
+
+    // Verificação de atualização
+    await this.verificarAtualizacao();
+  },
+  methods: {
+      async verificarAtualizacao() {
+          const resultado = await VersionService.checkVersion();
+          if (resultado.hasUpdate) {
+              this.novaVersaoDisponivel = true;
+              this.versaoRemota = resultado.remoteVersion;
+          }
+      }
   }
 
 }
