@@ -111,7 +111,7 @@
                       <div class="small">Há uma atualização pronta.</div>
                   </div>
                   </div>
-              </div>
+
               <div class="d-flex gap-2">
                   <button v-if="urlDownload" class="btn btn-sm btn-primary fw-bold" @click="baixarAtualizacao">
                       <i class="bi bi-download me-1"></i> Baixar
