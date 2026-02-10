@@ -15,7 +15,7 @@
           </p>
           <hr class="border-secondary">
           <p class="small text-muted">
-            Versão 1.0.0 • Desenvolvido com Vue.js 3 & Bootstrap
+            Versão {{ versao }} • Desenvolvido com Vue.js 3 & Bootstrap
           </p>
         </BCard>
       </BCol>
@@ -191,6 +191,7 @@ export default {
   },
   data() {
     return {
+      versao: process.env.VUE_APP_VERSION || require('../../package.json').version,
       copiado: false
     }
   },
