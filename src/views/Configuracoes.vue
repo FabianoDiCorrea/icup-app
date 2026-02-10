@@ -138,17 +138,45 @@
     </BRow>
 
   </div>
+
+    <!-- Modal para Backup Nativo (Android/iOS) -->
+    <BModal v-model="mostrarModalBackup" title="Opções de Backup" hide-footer>
+      <div class="d-flex flex-column gap-3">
+        <p class="text-muted small mb-0">Defina o nome do arquivo:</p>
+        <BFormInput v-model="nomeArquivoBackup" placeholder="Ex: backup_icup.json" />
+        
+        <div class="d-grid gap-2">
+          <BButton variant="primary" @click="salvarNoDispositivo">
+            💾 Salvar na pasta Downloads
+          </BButton>
+          <BButton variant="success" @click="compartilharArquivo">
+            📤 Compartilhar (WhatsApp, Email...)
+          </BButton>
+          <BButton variant="outline-secondary" @click="mostrarModalBackup = false">
+            ❌ Cancelar
+          </BButton>
+        </div>
+      </div>
+      <!-- Remove rodapé padrão -->
+      <template #footer>
+        <div class="d-none"></div>
+      </template>
+    </BModal>
+
 </template>
 
 <script>
 import DbService from '../services/DbService.js';
 import FootballApiService from '../services/FootballApiService.js';
-import { BCard, BButton, BRow, BCol, BFormGroup, BFormInput, BInputGroup } from 'bootstrap-vue-next';
+import { BCard, BButton, BRow, BCol, BFormGroup, BFormInput, BInputGroup, BModal } from 'bootstrap-vue-next';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 
 export default {
   name: 'Configuracoes',
   components: {
-    BCard, BButton, BRow, BCol, BFormGroup, BFormInput, BInputGroup
+    BCard, BButton, BRow, BCol, BFormGroup, BFormInput, BInputGroup, BModal
   },
   data() {
     return {
@@ -158,7 +186,10 @@ export default {
       modoImportacao: 'MESCLAR', // Padrão seguro
       apiKey: '',
       mostrarChave: false,
-      apiConfigurada: false
+      apiConfigurada: false,
+      // Controle do Backup Nativo
+      mostrarModalBackup: false,
+      nomeArquivoBackup: ''
     }
   },
   mounted() {
@@ -171,7 +202,17 @@ export default {
       this.processandoExport = true;
       try {
         const jsonString = await DbService.exportarBackup();
-        
+
+        // Se for nativo (Android/iOS), abre o Modal
+        if (Capacitor.isNativePlatform()) {
+          const dataHoje = new Date().toISOString().split('T')[0];
+          this.nomeArquivoBackup = `backup_icup_${dataHoje}.json`;
+          this.mostrarModalBackup = true;
+          this.processandoExport = false; // Finaliza processamento visual do botão
+          return;
+        }
+
+        // Se for Web, segue o fluxo normal de download pelo navegador
         const blob = new Blob([jsonString], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -255,6 +296,72 @@ export default {
       FootballApiService.setApiKey(this.apiKey.trim());
       this.apiConfigurada = true;
       alert("✅ Chave API salva com sucesso!\n\nVocê já pode usar o botão '🔄 Atualizar Elenco da API' ao cadastrar/editar times.");
+    },
+
+    // --- MÉTODOS NATIVOS (ANDROID) ---
+    async salvarNoDispositivo() {
+      try {
+        const jsonString = await DbService.exportarBackup();
+        // Sanitizar nome do arquivo para evitar erros de path
+        let safeName = this.nomeArquivoBackup.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const fileName = safeName.endsWith('.json') ? safeName : `${safeName}.json`;
+
+        try {
+            // Tenta salvar em Documents (Geralmente funciona no Android moderno)
+            // Requer que o app tenha permissão, mas não deve crashar se faltar, só dar erro.
+            await Filesystem.writeFile({
+                path: fileName, 
+                data: jsonString,
+                directory: Directory.Documents,
+                encoding: Encoding.UTF8
+            });
+            alert(`✅ Arquivo salvo em Documentos!\nNome: ${fileName}`);
+        } catch (eDoc) {
+            console.warn("Falha em Documents. Redirecionando para compartilhar...", eDoc);
+            
+            // Se falhar (ex: Android 11+ restringindo Documents sem permissão especial),
+            // a melhor aposta é usar o Share, que permite o usuário salvar onde quiser.
+            alert("ℹ️ Selecione onde deseja salvar o arquivo.\n\n(O Android requer sua permissão manual para concluir a gravação).");
+            
+            // Chama a função de compartilhar reaproveitando a lógica
+            await this.compartilharArquivo();
+            return; 
+        }
+        
+        this.mostrarModalBackup = false;
+
+      } catch (error) {
+        console.error("Erro crítico ao salvar:", error);
+        alert("Erro inesperado ao processar o arquivo. Tente novamente.");
+      }
+    },
+
+    async compartilharArquivo() {
+      try {
+        const jsonString = await DbService.exportarBackup();
+        const fileName = this.nomeArquivoBackup.endsWith('.json') ? this.nomeArquivoBackup : `${this.nomeArquivoBackup}.json`;
+
+        // Grava no Cache para poder compartilhar
+        const result = await Filesystem.writeFile({
+          path: fileName,
+          data: jsonString,
+          directory: Directory.Cache,
+          encoding: Encoding.UTF8
+        });
+
+        await Share.share({
+          title: 'Backup iCup',
+          text: 'Backup dos seus dados do iCup',
+          url: result.uri,
+          dialogTitle: 'Salvar/Enviar Backup'
+        });
+
+        this.mostrarModalBackup = false;
+
+      } catch (error) {
+        console.error("Erro ao compartilhar:", error);
+        alert("Erro ao abrir compartilhamento.");
+      }
     }
   }
 }
