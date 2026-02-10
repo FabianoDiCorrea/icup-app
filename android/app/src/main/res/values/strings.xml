@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">iCup</string>
+    <string name="title_activity_main">iCup</string>
+    <string name="package_name">br.com.icup.app</string>
+    <string name="custom_url_scheme">br.com.icup.app</string>
+</resources>
