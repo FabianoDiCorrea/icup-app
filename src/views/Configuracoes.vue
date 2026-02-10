@@ -138,17 +138,38 @@
     </BRow>
 
   </div>
+
+    <!-- Modal para Backup Nativo (Android/iOS) -->
+    <BModal v-model="mostrarModalBackup" title="Opções de Backup" hide-footer>
+      <div class="d-flex flex-column gap-3">
+        <p class="text-muted small mb-0">Defina o nome do arquivo:</p>
+        <BFormInput v-model="nomeArquivoBackup" placeholder="Ex: backup_icup.json" />
+        
+        <div class="d-grid gap-2">
+          <BButton variant="primary" @click="salvarNoDispositivo">
+            💾 Salvar na pasta Downloads
+          </BButton>
+          <BButton variant="success" @click="compartilharArquivo">
+            📤 Compartilhar (WhatsApp, Email...)
+          </BButton>
+        </div>
+      </div>
+    </BModal>
+
 </template>
 
 <script>
 import DbService from '../services/DbService.js';
 import FootballApiService from '../services/FootballApiService.js';
-import { BCard, BButton, BRow, BCol, BFormGroup, BFormInput, BInputGroup } from 'bootstrap-vue-next';
+import { BCard, BButton, BRow, BCol, BFormGroup, BFormInput, BInputGroup, BModal } from 'bootstrap-vue-next';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 
 export default {
   name: 'Configuracoes',
   components: {
-    BCard, BButton, BRow, BCol, BFormGroup, BFormInput, BInputGroup
+    BCard, BButton, BRow, BCol, BFormGroup, BFormInput, BInputGroup, BModal
   },
   data() {
     return {
@@ -158,7 +179,10 @@ export default {
       modoImportacao: 'MESCLAR', // Padrão seguro
       apiKey: '',
       mostrarChave: false,
-      apiConfigurada: false
+      apiConfigurada: false,
+      // Controle do Backup Nativo
+      mostrarModalBackup: false,
+      nomeArquivoBackup: ''
     }
   },
   mounted() {
@@ -171,7 +195,17 @@ export default {
       this.processandoExport = true;
       try {
         const jsonString = await DbService.exportarBackup();
-        
+
+        // Se for nativo (Android/iOS), abre o Modal
+        if (Capacitor.isNativePlatform()) {
+          const dataHoje = new Date().toISOString().split('T')[0];
+          this.nomeArquivoBackup = `backup_icup_${dataHoje}.json`;
+          this.mostrarModalBackup = true;
+          this.processandoExport = false; // Finaliza processamento visual do botão
+          return;
+        }
+
+        // Se for Web, segue o fluxo normal de download pelo navegador
         const blob = new Blob([jsonString], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -255,6 +289,72 @@ export default {
       FootballApiService.setApiKey(this.apiKey.trim());
       this.apiConfigurada = true;
       alert("✅ Chave API salva com sucesso!\n\nVocê já pode usar o botão '🔄 Atualizar Elenco da API' ao cadastrar/editar times.");
+    },
+
+    // --- MÉTODOS NATIVOS (ANDROID) ---
+    async salvarNoDispositivo() {
+      try {
+        const jsonString = await DbService.exportarBackup();
+        const fileName = this.nomeArquivoBackup.endsWith('.json') ? this.nomeArquivoBackup : `${this.nomeArquivoBackup}.json`;
+
+        await Filesystem.writeFile({
+          path: fileName, 
+          data: jsonString,
+          directory: Directory.Documents, // Tenta Documents primeiro (Android moderno restringe Downloads diretos as vezes)
+          encoding: Encoding.UTF8
+        });
+
+        alert(`✅ Arquivo salvo com sucesso na pasta Documentos!\nNome: ${fileName}`);
+        this.mostrarModalBackup = false;
+
+      } catch (error) {
+        console.error("Erro ao salvar nativo:", error);
+        // Fallback: Tentar ExternalStorage se Documents falhar (API antiga)
+        try {
+             const jsonString = await DbService.exportarBackup();
+             const fileName = this.nomeArquivoBackup.endsWith('.json') ? this.nomeArquivoBackup : `${this.nomeArquivoBackup}.json`;
+             
+             await Filesystem.writeFile({
+                path: `Download/${fileName}`, 
+                data: jsonString,
+                directory: Directory.ExternalStorage,
+                encoding: Encoding.UTF8
+            });
+            alert(`✅ Arquivo salvo na pasta Download!\nNome: ${fileName}`);
+            this.mostrarModalBackup = false;
+        } catch (err2) {
+             alert("Erro ao salvar arquivo. Tente a opção ' Compartilhar' e envie para o Google Drive ou WhatsApp.");
+             console.error(err2);
+        }
+      }
+    },
+
+    async compartilharArquivo() {
+      try {
+        const jsonString = await DbService.exportarBackup();
+        const fileName = this.nomeArquivoBackup.endsWith('.json') ? this.nomeArquivoBackup : `${this.nomeArquivoBackup}.json`;
+
+        // Grava no Cache para poder compartilhar
+        const result = await Filesystem.writeFile({
+          path: fileName,
+          data: jsonString,
+          directory: Directory.Cache,
+          encoding: Encoding.UTF8
+        });
+
+        await Share.share({
+          title: 'Backup iCup',
+          text: 'Backup dos seus dados do iCup',
+          url: result.uri,
+          dialogTitle: 'Salvar/Enviar Backup'
+        });
+
+        this.mostrarModalBackup = false;
+
+      } catch (error) {
+        console.error("Erro ao compartilhar:", error);
+        alert("Erro ao abrir compartilhamento.");
+      }
     }
   }
 }
