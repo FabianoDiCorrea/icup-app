@@ -102,9 +102,9 @@
       </div>
 
       <!-- Aviso de Nova Versão -->
-      <div v-if="novaVersaoDisponivel" class="fixed-bottom p-3">
+      <div v-if="novaVersaoDisponivel" class="fixed-bottom p-3" style="z-index: 10000;">
           <div class="alert alert-info shadow-lg border-info d-flex align-items-center justify-content-between mb-0" 
-               style="background: rgba(13, 202, 240, 0.95); backdrop-filter: blur(5px); color: #000; cursor: pointer;"
+               style="background: #0dcaf0; color: #000; cursor: pointer;"
                @click="baixarAtualizacao">
               <div class="d-flex align-items-center gap-2">
                   <i class="bi bi-cloud-arrow-down-fill fs-4"></i>
@@ -184,7 +184,12 @@ export default {
       },
       baixarAtualizacao() {
           if (this.urlDownload) {
-              window.open(this.urlDownload, '_blank');
+              // Tenta abrir em nova aba (padrão)
+              const win = window.open(this.urlDownload, '_blank');
+              // Se falhar (bloqueio de popup ou webview estrito), tenta navegar na mesma janela
+              if (!win) {
+                  window.location.href = this.urlDownload;
+              }
           }
       }
   }
