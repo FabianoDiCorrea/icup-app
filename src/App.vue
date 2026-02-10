@@ -103,20 +103,22 @@
 
       <!-- Aviso de Nova Versão -->
       <div v-if="novaVersaoDisponivel" class="fixed-bottom p-3">
-          <div class="alert alert-info shadow-lg border-info d-flex align-items-center justify-content-between mb-0" style="background: rgba(13, 202, 240, 0.95); backdrop-filter: blur(5px); color: #000;">
+          <div class="alert alert-info shadow-lg border-info d-flex align-items-center justify-content-between mb-0" 
+               style="background: rgba(13, 202, 240, 0.95); backdrop-filter: blur(5px); color: #000; cursor: pointer;"
+               @click="baixarAtualizacao">
               <div class="d-flex align-items-center gap-2">
                   <i class="bi bi-cloud-arrow-down-fill fs-4"></i>
                   <div>
                       <strong>Nova versão disponível! (v{{ versaoRemota }})</strong>
-                      <div class="small">Há uma atualização pronta.</div>
+                      <div class="small">Toque para baixar agora.</div>
                   </div>
                   </div>
 
               <div class="d-flex gap-2">
-                  <button v-if="urlDownload" class="btn btn-sm btn-primary fw-bold" @click="baixarAtualizacao">
+                  <button v-if="urlDownload" class="btn btn-sm btn-primary fw-bold">
                       <i class="bi bi-download me-1"></i> Baixar
                   </button>
-                  <button class="btn-close" @click="novaVersaoDisponivel = false"></button>
+                  <button class="btn-close" @click.stop="novaVersaoDisponivel = false"></button>
               </div>
           </div>
       </div>
