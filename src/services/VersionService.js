@@ -13,11 +13,15 @@ export default {
             const remoteVersion = data.version;
             const localVersion = version;
 
+            const downloadUrl = data.apk_url;
+
             return {
                 hasUpdate: this.compareVersions(remoteVersion, localVersion) > 0,
                 remoteVersion,
-                localVersion
+                localVersion,
+                downloadUrl
             };
+
         } catch (error) {
             console.error('Erro ao verificar versão:', error);
             return { hasUpdate: false, error };

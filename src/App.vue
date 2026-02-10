@@ -110,8 +110,14 @@
                       <strong>Nova versão disponível! (v{{ versaoRemota }})</strong>
                       <div class="small">Há uma atualização pronta.</div>
                   </div>
+                  </div>
               </div>
-              <button class="btn-close" @click="novaVersaoDisponivel = false"></button>
+              <div class="d-flex gap-2">
+                  <button v-if="urlDownload" class="btn btn-sm btn-primary fw-bold" @click="baixarAtualizacao">
+                      <i class="bi bi-download me-1"></i> Baixar
+                  </button>
+                  <button class="btn-close" @click="novaVersaoDisponivel = false"></button>
+              </div>
           </div>
       </div>
 
@@ -138,7 +144,8 @@ export default {
       menuAberto: false, // Controla o estado do menu no mobile
       exibirAvisoPorta: false,
       novaVersaoDisponivel: false,
-      versaoRemota: ''
+      versaoRemota: '',
+      urlDownload: ''
     }
   },
   async mounted() {
@@ -170,6 +177,12 @@ export default {
           if (resultado.hasUpdate) {
               this.novaVersaoDisponivel = true;
               this.versaoRemota = resultado.remoteVersion;
+              this.urlDownload = resultado.downloadUrl;
+          }
+      },
+      baixarAtualizacao() {
+          if (this.urlDownload) {
+              window.open(this.urlDownload, '_blank');
           }
       }
   }
