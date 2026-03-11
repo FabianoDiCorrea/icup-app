@@ -213,11 +213,16 @@
         </div>
 
         <!-- DISPLAY CRONÔMETRO LISTA -->
-        <div v-if="jogo.cronometro && (jogo.cronometro.status !== 'PARADO' || (jogo.cronometro.tempoRestanteSnapshot < (jogo.cronometro.duracaoPartida || 10) * 60))" 
-             class="mb-1 fw-bold font-monospace px-2 rounded"
-             :class="{'text-success bg-light border border-success': jogo.cronometro.status === 'RODANDO', 'text-danger': jogo.cronometro.status === 'ENCERRADO', 'text-warning bg-light border border-warning': jogo.cronometro.status === 'PARADO'}"
-             style="font-size: 0.9rem;">
-             {{ getTempoCorrente(jogo) }}
+        <div v-if="!jogo.finalizado && jogo.cronometro && (jogo.cronometro.status !== 'PARADO' || temTempoDecorrido(jogo))" 
+             class="mb-2 px-2 py-1 rounded d-flex flex-column align-items-center shadow-sm"
+             :class="{'bg-success text-white border border-success': jogo.cronometro.status === 'RODANDO', 'bg-danger text-white': jogo.cronometro.status === 'ENCERRADO', 'bg-warning text-dark border border-warning': jogo.cronometro.status === 'PARADO'}"
+             style="line-height: 1;">
+             <span class="fw-bold" style="font-size: 0.6rem; letter-spacing: 1px;">
+                {{ jogo.cronometro.status === 'RODANDO' ? 'RODANDO' : (jogo.cronometro.status === 'PARADO' ? 'PAUSADO' : 'ENCERRADO') }}
+             </span>
+             <span class="fw-bold font-monospace" style="font-size: 1.1rem; letter-spacing: 1px;">
+                {{ getTempoCorrente(jogo) }}
+             </span>
         </div>
 
         <!-- Placar -->
@@ -477,7 +482,8 @@ export default {
       }
     },
     now: Date.now(),
-    timerInterval: null
+    timerInterval: null,
+    apitoTocando: false
   }
 },
 
@@ -870,10 +876,15 @@ podeEncerrarLigaComMataMata() {
         this.id = this.$route.params.id
         await this.carregarCampeonato();
         
-        // Iniciar timer visual
+        // Web Audio API para tocar o apito
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        this.oscillator = null;
+
+        // Iniciar timer visual rápido (fluidez dos modos simulados)
         this.timerInterval = setInterval(() => {
             this.now = Date.now();
-        }, 1000);
+            this.verificarFimDeJogos();
+        }, 50);
     },
     beforeUnmount() {
         if (this.timerInterval) clearInterval(this.timerInterval);
@@ -948,22 +959,174 @@ podeEncerrarLigaComMataMata() {
   }
 },
 
+        // Toca o apito padronizado
+        tocarApitoFinal() {
+            if (this.apitoTocando) return;
+            this.apitoTocando = true;
+            // Libera a flag após 3s (tempo seguro do apito)
+            setTimeout(() => { this.apitoTocando = false; }, 3000);
+
+            // Tenta tocar arquivo MP3 se existir
+            try {
+                const audio = new Audio('/apito.mp3'); 
+                const playPromise = audio.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise
+                        .then(() => {
+                            // Sucesso!
+                        })
+                        .catch(error => {
+                            console.warn("Áudio MP3 falhou, fallback sintético:", error);
+                            this.tocarApitoSintetico();
+                        });
+                }
+            } catch (e) {
+                console.warn("Erro crítico no áudio:", e);
+                this.tocarApitoSintetico();
+            }
+        },
+        tocarApitoSintetico() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return console.warn("Web Audio API não suportada.");
+                
+                const ctx = new AudioContext();
+                
+                // Função auxiliar para tocar um "sopro"
+                const tocarSopro = (inicio, duracao) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    
+                    osc.type = 'triangle'; 
+                    osc.frequency.setValueAtTime(2200, ctx.currentTime + inicio);
+                    
+                    const lfo = ctx.createOscillator();
+                    lfo.type = 'square';
+                    lfo.frequency.value = 25; 
+                    
+                    const lfoGain = ctx.createGain();
+                    lfoGain.gain.value = 800; 
+                    
+                    lfo.connect(osc.frequency);
+                    lfo.start(ctx.currentTime + inicio);
+                    lfo.stop(ctx.currentTime + inicio + duracao);
+
+                    gain.gain.setValueAtTime(0, ctx.currentTime + inicio);
+                    gain.gain.linearRampToValueAtTime(0.8, ctx.currentTime + inicio + 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + inicio + duracao);
+
+                    osc.start(ctx.currentTime + inicio);
+                    osc.stop(ctx.currentTime + inicio + duracao);
+                };
+
+                // Padrão de 3 trilos (Fim de jogo)
+                tocarSopro(0,     0.6); // Fom 
+                tocarSopro(0.8,   0.6); // Fom 
+                tocarSopro(1.6,   1.2); // Foooooom
+                
+            } catch (e) {
+                console.error("Erro no áudio sintético fallback", e);
+            }
+        },
+
+        // Verifica se algum jogo rodando zerou o cronômetro
+        async verificarFimDeJogos() {
+            if (!this.campeonato || !this.campeonato.jogos) return;
+            
+            for (let i = 0; i < this.campeonato.jogos.length; i++) {
+                const jogo = this.campeonato.jogos[i];
+                if (jogo.cronometro && jogo.cronometro.status === 'RODANDO') {
+                    let tempoMs = jogo.cronometro.tempoRestanteSnapshot;
+                    if (tempoMs < 10000 && tempoMs > 0) tempoMs *= 1000;
+                    
+                    if (jogo.cronometro.ultimoUpdate) {
+                        const decorridoMs = this.now - jogo.cronometro.ultimoUpdate;
+                        tempoMs = Math.max(0, tempoMs - decorridoMs);
+                    }
+                    
+                    // Condição de Fim de Jogo Universal.
+                    // Em tese, tanto o modo SIM_90 quanto o SIM_45 atingem o seu máximo "visual"
+                    // (ex: 90:00 ou 45:00) EXATAMENTE no mesmo momento em que o "tempoRestanteSnapshot"
+                    // (que é o tempoMs) chega a 0. O cálculo de proporção que exibe os minutos acelerados 
+                    // apenas disfarça o visual, mas a duração física da partida sob o capô é regida pelo mesmo motor.
+                    // Sendo assim, a condição absoluta de encerramento para TODOS os 3 modos é simplesmente:
+                    let chegouAoFim = (tempoMs <= 0);
+                    
+                    if (chegouAoFim && jogo.cronometro.status === 'RODANDO') {
+                        // Se o jogo acabou e o placar está vazio (Ex. "", null ou undefined), autocompleta com 0x0
+                        if (jogo.golsA === null || jogo.golsA === "" || jogo.golsA === undefined) jogo.golsA = 0;
+                        if (jogo.golsB === null || jogo.golsB === "" || jogo.golsB === undefined) jogo.golsB = 0;
+                        
+                        // Forçamos a reatividade quebrando o Proxy antigo
+                        // Substituímos o objeto inteiro para o Vue renderizar e a condição do if falhar no próximo tick
+                        jogo.cronometro = {
+                            ...jogo.cronometro,
+                            status: 'ENCERRADO',
+                            tempoRestanteSnapshot: 0,
+                            ultimoUpdate: null
+                        };
+                        
+                        // Atualiza no DB!
+                        try {
+                            DbService.atualizarJogo(this.campeonato.id, jogo).then(() => {
+                                this.tocarApitoFinal();
+                            }).catch(e => console.error("Falha ao encerrar jogo:", e));
+                        } catch(e) {
+                            console.error("Exceção:", e);
+                        }
+                    }
+                }
+            }
+        },
+
+        temTempoDecorrido(jogo) {
+            if (!jogo.cronometro) return false;
+            let snap = jogo.cronometro.tempoRestanteSnapshot;
+            if (snap < 10000 && snap > 0) snap *= 1000;
+            const totalMs = (jogo.cronometro.duracaoPartida || 10) * 60 * 1000;
+            return snap < totalMs;
+        },
         getTempoCorrente(jogo) {
             if (!jogo.cronometro) return "";
             if (jogo.cronometro.status === 'ENCERRADO') return "FIM";
             
-            let segundos = jogo.cronometro.tempoRestanteSnapshot;
+            let tempoMs = jogo.cronometro.tempoRestanteSnapshot;
+            if (tempoMs < 10000 && tempoMs > 0) tempoMs *= 1000;
             
             if (jogo.cronometro.status === 'RODANDO' && jogo.cronometro.ultimoUpdate) {
-                const decorrido = Math.floor((this.now - jogo.cronometro.ultimoUpdate) / 1000);
-                segundos = segundos - decorrido;
+                const decorridoMs = this.now - jogo.cronometro.ultimoUpdate;
+                tempoMs = Math.max(0, tempoMs - decorridoMs);
             }
 
-            if (segundos <= 0) return "FIM";
+            if (tempoMs <= 0) return "00:00";
 
-            const m = Math.floor(segundos / 60);
-            const s = segundos % 60;
-            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            const tempoTotalMs = (jogo.cronometro.duracaoPartida || 10) * 60 * 1000;
+            const modo = jogo.cronometro.modo || 'REAL';
+            const decorridoMs = tempoTotalMs - tempoMs;
+
+            if (modo === 'SIM_90') {
+                const proporcao = decorridoMs / tempoTotalMs;
+                const msSimulados = Math.floor(proporcao * 5400000); // 90m
+                const ts = Math.floor(msSimulados / 1000);
+                return `${String(Math.floor(ts/60)).padStart(2,'0')}:${String(ts%60).padStart(2,'0')}`;
+            } else if (modo === 'SIM_45') {
+                const metadeMs = tempoTotalMs / 2;
+                let refMs = decorridoMs;
+                if (decorridoMs >= metadeMs) refMs = decorridoMs - metadeMs;
+                const proporcao = refMs / metadeMs;
+                const msSimulados = Math.floor(proporcao * 2700000); // 45m
+                const ts = Math.floor(msSimulados / 1000);
+                const lbl = decorridoMs >= metadeMs ? '2ºT' : '1ºT';
+                return `${String(Math.floor(ts/60)).padStart(2,'0')}:${String(ts%60).padStart(2,'0')} ${lbl}`;
+            }
+
+            // REAL
+            const ts = Math.ceil(tempoMs / 1000);
+            return `${String(Math.floor(ts/60)).padStart(2,'0')}:${String(ts%60).padStart(2,'0')}`;
         },
 
 avancarRodada() {
@@ -1229,8 +1392,14 @@ if (paginaSalva !== null) {
                             numero = jogador.numero || jogador.id;
                         }
                     }
+                } // Fechamento que estava faltando!
+                
+                let minutoStr = '';
+                if (evento.minuto) {
+                    minutoStr = ` [${evento.minuto}]`;
                 }
-                return `Nº ${numero} - ${nome}`;
+                
+                return `Nº ${numero} - ${nome}${minutoStr}`;
             });
         },
         irParaSumula(jogo) {

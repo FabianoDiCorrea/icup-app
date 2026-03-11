@@ -21,8 +21,11 @@
                 v-model:nota="jogo.nota" 
                 
                 :tempoFormatado="tempoFormatado"
+                :labelTempo="labelTempo"
+                :modoCronometro="modoCronometro"
                 :statusCronometro="statusCronometro"
                 :tempoRestante="tempoRestante"
+                :duracaoPartida="duracaoPartida"
 
                 @voltar="voltar" @salvar="salvarAlteracoes" @sharear="gerarShare"
                 @iniciar="iniciarCronometro"
@@ -30,6 +33,7 @@
                 @resetar="resetarCronometro"
                 @editarTempo="abrirEditorTempo"
                 @ajustarSegundos="ajustarSegundos"
+                @trocarModo="trocarModoCronometro"
             />
            
             <SocialShareModal v-model="modalShareAberto" :timeA="timeFullA" :timeB="timeFullB" :golsA="golsA"
@@ -117,15 +121,66 @@ export default {
             duracaoPartida: 10, // minutos padrão
             tempoRestante: 600, // segundos
             statusCronometro: 'PARADO', // PARADO, RODANDO, ENCERRADO
+            modoCronometro: 'REAL', // REAL, SIM_90, SIM_45
             cronometroId: null,
             apitoTocando: false
         }
     },
     computed: {
+        labelTempo() {
+            if (this.modoCronometro !== 'SIM_45') return null;
+            const tempoTotalMs = this.duracaoPartida * 60 * 1000;
+            const decorridoMs = tempoTotalMs - this.tempoRestante;
+            if (decorridoMs >= tempoTotalMs / 2) return '2º TEMPO';
+            return '1º TEMPO';
+        },
         tempoFormatado() {
-            const m = Math.floor(this.tempoRestante / 60);
-            const s = this.tempoRestante % 60;
+            const tempoTotalMs = this.duracaoPartida * 60 * 1000;
+            const decorridoMs = tempoTotalMs - this.tempoRestante;
+            
+            if (this.modoCronometro === 'SIM_90') {
+                // Decorrido proporcional a 90 minutos (90 * 60 = 5400 * 1000 = 5400000ms)
+                const proporcao = decorridoMs / tempoTotalMs;
+                const msSimulados = Math.floor(proporcao * 5400000); // 5400000ms = 90m
+                const totalSegundos = Math.floor(msSimulados / 1000);
+                const m = Math.floor(totalSegundos / 60);
+                const s = totalSegundos % 60;
+                return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            } 
+            else if (this.modoCronometro === 'SIM_45') {
+                // Decorrido em 2 metades. Cada metade = 45 min simulados (2700000ms)
+                const metadeRealMs = tempoTotalMs / 2;
+                let refMs = decorridoMs;
+                if (decorridoMs >= metadeRealMs) {
+                    refMs = decorridoMs - metadeRealMs; // Reseta pro 2º tempo
+                }
+                const proporcao = refMs / metadeRealMs;
+                const msSimulados = Math.floor(proporcao * 2700000); // 2700000ms = 45m
+                const totalSegundos = Math.floor(msSimulados / 1000);
+                const m = Math.floor(totalSegundos / 60);
+                const s = totalSegundos % 60;
+                return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            }
+
+            // Modo REAL (Regressivo)
+            const totalSegundos = Math.ceil(this.tempoRestante / 1000); // Teto para não mostrar 00:00 se tiver 500ms
+            const m = Math.floor(totalSegundos / 60);
+            const s = totalSegundos % 60;
             return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        },
+        tempoStringParaEvento() {
+            if (this.statusCronometro === 'PARADO' && this.tempoRestante === this.duracaoPartida * 60 * 1000) return null;
+            
+            if (this.modoCronometro === 'SIM_90') {
+                const parts = this.tempoFormatado.split(':');
+                return `${parts[0]}'`;
+            } else if (this.modoCronometro === 'SIM_45') {
+                const marks = this.tempoFormatado.split(':');
+                const label = this.labelTempo === '1º TEMPO' ? '1ºT' : '2ºT';
+                return `${marks[0]}' ${label}`;
+            } else {
+                return this.tempoFormatado;
+            }
         },
         golsA() {
             if (!this.jogo?.eventos) return 0;
@@ -141,6 +196,13 @@ export default {
         this.idJogo = this.$route.params.idJogo;
         await this.carregarDados();
         
+    },
+    beforeUnmount() {
+        // ESSENCIAL: Limpar o loop do cronômetro quando sair da tela da súmula, evitando memory leak
+        if (this.cronometroId) {
+            clearInterval(this.cronometroId);
+            this.cronometroId = null;
+        }
     },
     methods: {
         async carregarDados() {
@@ -168,21 +230,29 @@ export default {
                 // INICIALIZAÇÃO E RECUPERAÇÃO DO CRONÔMETRO
                 jogoEncontrado.cronometro = jogoEncontrado.cronometro || {
                     duracaoPartida: 10,
-                    tempoRestanteSnapshot: 600, // 10 min em segundos
+                    tempoRestanteSnapshot: 600 * 1000, // 10 min em ms (agora em milissegundos)
                     ultimoUpdate: null,
-                    status: 'PARADO' // PARADO, RODANDO, ENCERRADO
+                    status: 'PARADO', // PARADO, RODANDO, ENCERRADO
+                    modo: 'REAL'
                 };
 
                 // Sync local state
                 this.duracaoPartida = jogoEncontrado.cronometro.duracaoPartida;
                 this.statusCronometro = jogoEncontrado.cronometro.status;
+                this.modoCronometro = jogoEncontrado.cronometro.modo || 'REAL';
                 
+                // Conversão legada: se o snapshot salvo for menor que 5000 (provavelmente salvo em segundos)
+                // convertemos para ms. Jogos de 90 mins são 5400s, mas como é default 10min = 600
+                if(jogoEncontrado.cronometro.tempoRestanteSnapshot < 10000 && jogoEncontrado.cronometro.tempoRestanteSnapshot > 0) {
+                    jogoEncontrado.cronometro.tempoRestanteSnapshot *= 1000;
+                }
+
                 if (this.statusCronometro === 'RODANDO' && jogoEncontrado.cronometro.ultimoUpdate) {
                     const agora = Date.now();
-                    const decorridoSegundos = Math.floor((agora - jogoEncontrado.cronometro.ultimoUpdate) / 1000);
-                    const novoTempo = jogoEncontrado.cronometro.tempoRestanteSnapshot - decorridoSegundos;
+                    const decorridoMs = agora - jogoEncontrado.cronometro.ultimoUpdate;
+                    const novoTempoMs = jogoEncontrado.cronometro.tempoRestanteSnapshot - decorridoMs;
 
-                    if (novoTempo <= 0) {
+                    if (novoTempoMs <= 0) {
                         this.tempoRestante = 0;
                         this.statusCronometro = 'ENCERRADO';
                         this.pararCronometro(false); // false = não salvar cronometro state simples
@@ -198,9 +268,9 @@ export default {
 
                         this.tocarApitoFinal();
                     } else {
-                        this.tempoRestante = novoTempo;
-                        // Retoma o loop visual (sem resetar o snapshot save)
-                        this.retomarCronometroVisual(); 
+                        this.tempoRestante = novoTempoMs;
+                        // Retoma o loop visual (não reseta timestamp base)
+                        this.retomarCronometroVisual(jogoEncontrado.cronometro.ultimoUpdate, jogoEncontrado.cronometro.tempoRestanteSnapshot); 
                     }
                 } else {
                     this.tempoRestante = jogoEncontrado.cronometro.tempoRestanteSnapshot;
@@ -252,11 +322,10 @@ export default {
         getId(j) { return j.id || j.numero; },
         criarSnapshot(j) { return { id: this.getId(j), numero: j.numero, nome: j.nome }; },
 
-        // --- Lógica Delegada ---
-        async salvarAlteracoes(finalizar = true) {
-            // Se vier de evento (click), 'finalizar' pode ser um objeto Event, então forçamos true.
+        async salvarAlteracoes(finalizar = false) {
+            // Se vier de evento (click), 'finalizar' pode ser um objeto Event, então forçamos false.
             // Se for chamada interna passando booleano, respeita.
-            const deveFinalizar = (typeof finalizar === 'boolean') ? finalizar : true;
+            const deveFinalizar = (typeof finalizar === 'boolean') ? finalizar : false;
 
             // Se não finalizou e gols forem 0, salva null para não exibir 0x0
             // Se finalizou, salva 0 mesmo (0x0)
@@ -320,7 +389,7 @@ export default {
                     jogador: snapshot,
                     jogadorId: snapshot.id,
                     timeId: timeId,
-                    minuto: null
+                    minuto: this.tempoStringParaEvento // Usa a computada que criamos
                 });
             }
             await this.salvarAlteracoes();
@@ -375,7 +444,7 @@ export default {
                 timeId: timeId,
                 sai: this.criarSnapshot(jogadorSai),
                 entra: this.criarSnapshot(jogadorEntra),
-                minuto: null
+                minuto: this.tempoStringParaEvento
             });
             temp.saiId = null; temp.entraId = null;
             await this.salvarAlteracoes();
@@ -419,7 +488,7 @@ export default {
             timeId: this.jogo.timeA.id,
             jogador: this.criarSnapshot(jogador),
             jogadorId: jogador.id || jogador.numero,
-            minuto: null
+            minuto: 'Simulado' // Gols de simulação ganham essa label temporal
         });
     }
 
@@ -433,7 +502,7 @@ export default {
             timeId: this.jogo.timeB.id,
             jogador: this.criarSnapshot(jogador),
             jogadorId: jogador.id || jogador.numero,
-            minuto: null
+            minuto: 'Simulado'
         });
     }
 
@@ -478,14 +547,15 @@ async anularPartida() {
 
         // Reset Cronômetro
         const duracao = this.duracaoPartida || 10;
-        this.tempoRestante = duracao * 60;
+        this.tempoRestante = duracao * 60 * 1000;
         this.statusCronometro = 'PARADO';
 
         this.jogo.cronometro = {
             duracaoPartida: duracao,
-            tempoRestanteSnapshot: duracao * 60,
+            tempoRestanteSnapshot: duracao * 60 * 1000,
             ultimoUpdate: null,
-            status: 'PARADO'
+            status: 'PARADO',
+            modo: this.modoCronometro
         };
 
         // Salva as alterações (passando false para não forçar 'finalizado: true')
@@ -510,10 +580,27 @@ async anularPartida() {
                 duracaoPartida: this.duracaoPartida,
                 tempoRestanteSnapshot: this.tempoRestante, // Snapshot atual
                 ultimoUpdate: this.statusCronometro === 'RODANDO' ? Date.now() : null,
-                status: this.statusCronometro
+                status: this.statusCronometro,
+                modo: this.modoCronometro
             };
             // Salvar estado cronometro NÃO DEVE finalizar a partida
             await this.salvarAlteracoes(false); 
+        },
+
+        async trocarModoCronometro() {
+            if(this.statusCronometro === 'RODANDO') {
+                alert("Pausa o cronômetro antes de trocar o modo!");
+                return;
+            }
+            if(this.modoCronometro === 'REAL') this.modoCronometro = 'SIM_90';
+            else if(this.modoCronometro === 'SIM_90') this.modoCronometro = 'SIM_45';
+            else this.modoCronometro = 'REAL';
+            
+            await this.salvarEstadoCronometro();
+
+            if(confirm("Deseja aplicar este Modo de Cronômetro para todos os demais jogos pendentes do campeonato?")) {
+                await this.propagarConfiguracoesCronometro('modo');
+            }
         },
 
         iniciarCronometro() {
@@ -522,30 +609,35 @@ async anularPartida() {
                 // Salva estado COM timestamp atual antes de iniciar visualmente
                 // Isso garante que o delta comece a contar a partir de AGORA
                 this.salvarEstadoCronometro();
-                this.retomarCronometroVisual();
+                this.retomarCronometroVisual(Date.now(), this.tempoRestante);
             }
         },
 
-        retomarCronometroVisual() {
+        retomarCronometroVisual(timestampBase, tempoRestanteBase) {
             // Apenas inicia o intervalo visual (não salva no DB repetidamente)
             if (this.cronometroId) clearInterval(this.cronometroId);
             
+            // Loop rápido para tela rodar fluida (100ms)
             this.cronometroId = setInterval(() => {
                 if (this.tempoRestante > 0) {
-                    this.tempoRestante--;
-                } else {
-                    this.statusCronometro = 'ENCERRADO';
-                    this.pararCronometro(false); 
-                    
-                    // Atualiza explicitamente o objeto jogo antes de salvar
-                    this.jogo.cronometro.status = 'ENCERRADO';
-                    this.jogo.cronometro.tempoRestanteSnapshot = 0;
-                    this.jogo.cronometro.ultimoUpdate = null;
+                    const decorridoMs = Date.now() - timestampBase;
+                    this.tempoRestante = tempoRestanteBase - decorridoMs;
 
-                    this.salvarAlteracoes(true); // Finaliza partida e persiste
-                    this.tocarApitoFinal();
+                    if (this.tempoRestante <= 0) {
+                        this.tempoRestante = 0;
+                        this.statusCronometro = 'ENCERRADO';
+                        this.pararCronometro(false); 
+                        
+                        // Atualiza explicitamente o objeto jogo antes de salvar
+                        this.jogo.cronometro.status = 'ENCERRADO';
+                        this.jogo.cronometro.tempoRestanteSnapshot = 0;
+                        this.jogo.cronometro.ultimoUpdate = null;
+
+                        this.salvarAlteracoes(true); // Finaliza partida e persiste
+                        this.tocarApitoFinal();
+                    }
                 }
-            }, 1000);
+            }, 50); // 50ms = 20 FPS (Suficiente para precisão visual rápida)
         },
 
         pararCronometro(salvar = true) {
@@ -561,7 +653,7 @@ async anularPartida() {
         resetarCronometro() {
             this.pararCronometro(false); // Para sem salvar ainda
             this.statusCronometro = 'PARADO';
-            this.tempoRestante = this.duracaoPartida * 60;
+            this.tempoRestante = this.duracaoPartida * 60 * 1000;
             this.salvarEstadoCronometro(); // Salva resetado
         },
 
@@ -570,16 +662,100 @@ async anularPartida() {
              this.resetarCronometro();
         },
 
-        abrirEditorTempo() {
+        async abrirEditorTempo() {
             const novoTempo = prompt("Digite o tempo em minutos:", this.duracaoPartida);
             if (novoTempo && !isNaN(novoTempo)) {
                 this.duracaoPartida = parseInt(novoTempo);
                 this.resetarCronometro();
+
+                if(confirm("Deseja aplicar essa duração de (" + this.duracaoPartida + " min) para todos os demais jogos pendentes do campeonato?")) {
+                    await this.propagarConfiguracoesCronometro('duracao');
+                }
+            }
+        },
+        async propagarConfiguracoesCronometro(tipo) {
+            try {
+                const camp = await DbService.getCampeonatoById(this.idCampeonato);
+                if (!camp || !camp.jogos) return;
+                
+                let alteracoes = 0;
+                
+                for (let j of camp.jogos) {
+                    // Pula o próprio jogo que já está aberto/salvo e jogos que já acabaram
+                    if (j.id === this.jogo.id) continue;
+                    if (j.finalizado) continue;
+                    
+                    if (!j.cronometro) {
+                        j.cronometro = {
+                            duracaoPartida: 10,
+                            tempoRestanteSnapshot: 10 * 60 * 1000,
+                            ultimoUpdate: null,
+                            status: 'PARADO',
+                            modo: 'REAL'
+                        };
+                    }
+
+                    if (tipo === 'duracao' || tipo === 'ambos') {
+                        // Verificamos se o jogo ainda está Intacto (não rodou nenhumm milissegundo extra) para limpar adequadamente o tempo base também
+                        const tempoBaseAnteriorMs = (j.cronometro.duracaoPartida * 60 * 1000);
+                        const duracaoIntacta = j.cronometro.tempoRestanteSnapshot === tempoBaseAnteriorMs || j.cronometro.tempoRestanteSnapshot === 0;
+                        
+                        j.cronometro.duracaoPartida = this.duracaoPartida;
+
+                        if (duracaoIntacta) {
+                            j.cronometro.tempoRestanteSnapshot = this.duracaoPartida * 60 * 1000;
+                        }
+                    }
+                    
+                    if (tipo === 'modo' || tipo === 'ambos') {
+                        j.cronometro.modo = this.modoCronometro;
+                    }
+                    alteracoes++;
+                }
+
+                if (alteracoes > 0) {
+                    await DbService.atualizarCampeonato(camp);
+                    // Como não disparamos toasts bonitos aqui, vamos usar um Toast simples padrão do navegador
+                    console.log(`Sucesso: Configuração propagada para ${alteracoes} jogos.`);
+                }
+            } catch (error) {
+                console.error("Erro ao propagar config global do cronômetro:", error);
+                alert("Erro ao aplicar nos outros jogos do campeonato.");
             }
         },
         ajustarSegundos(segundos) {
-            // Se estiver rodando, precisamos atualizar o snapshot base também
-            this.tempoRestante += segundos;
+            // "segundos" aqui representa o tempo VISUAL que o usuário quer pular (ex: 10s visuais)
+            // Precisamos descobrir quanto de tempo REAL isso representa pro cálculo em milissegundos.
+            
+            let fatorConversao = 1; // Modo REAL (1s visual = 1s real)
+            
+            if (this.modoCronometro === 'SIM_90') {
+                // 90 min simulados = duracaoPartida real
+                // Fator: 5400s / (duracaoPartida*60)
+                fatorConversao = 5400 / (this.duracaoPartida * 60);
+            } else if (this.modoCronometro === 'SIM_45') {
+                 // 45 min simulados = (duracaoPartida/2) real (que dá o mesmo fator, pois 45 * 2 = 90)
+                fatorConversao = 2700 / ((this.duracaoPartida * 60) / 2);
+            }
+
+            // O tempo real a ser pulado em Ms é o (tempo visual pedido / fator)
+            const ajusteRealEmMs = (segundos / fatorConversao) * 1000;
+
+            // Se for negativo (-10s visuais), ele "volta" no tempo (adiciona tempo *restante*)
+            // Se for positivo (+10s visuais), ele "avança" no tempo (subtrai tempo *restante*)
+            // Nota: O botão +10s passa "+10", botão -10s passa "-10". 
+            // O sinal do template SumulaHeader.vue tem que casar:
+            // @click="$emit('ajustarSegundos', -10)" -> Quero -10s visuais (voltar tempo decorrido, ou seja, Aumentar Restante)
+            // Lógica antiga (bugada): this.tempoRestante += (segundos * 1000) = somava -10, então tirava tempo restante (avançava).
+            // Ajeitando para a intuição lógica (Avançar 10s = diminuir restante / Voltar 10s = aumentar restante)
+            
+            // Mas, pra não mexer no componente base, vamos inverter o sinal aqui onde o cálculo atua no restante.
+            // Para "Tirar -10s da partida": Aumenta o tempo restante (+10s) = (segundos * -1)
+            this.tempoRestante += (ajusteRealEmMs * -1); 
+            
+            // Limitadores
+            const tempoMaximoMs = this.duracaoPartida * 60 * 1000;
+            if (this.tempoRestante > tempoMaximoMs) this.tempoRestante = tempoMaximoMs;
             if (this.tempoRestante < 0) this.tempoRestante = 0;
             
             // Salva o novo tempo restante como snapshot atual
@@ -597,6 +773,9 @@ async anularPartida() {
 
                 this.salvarAlteracoes(true); // Finaliza partida
                 this.tocarApitoFinal();
+            } else if (this.statusCronometro === 'RODANDO') {
+                 // Reinicia loop com o novo base setup
+                 this.retomarCronometroVisual(Date.now(), this.tempoRestante);
             }
         },
         tocarApitoFinal() {

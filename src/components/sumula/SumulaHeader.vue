@@ -79,11 +79,31 @@
                 <div class="crono-wrapper order-2 shadow-lg border-top border-lg-top-0 border-lg-start border-secondary bg-black">
                     <div class="p-2 p-md-3 h-100 d-flex flex-column flex-md-row flex-lg-column align-items-center justify-content-center justify-content-md-between justify-content-lg-center gap-2 gap-md-3">
                         
-                        <!-- Tempo -->
-                        <div class="fw-bold text-monospace tempo-display" 
-                             :class="{'text-success': statusCronometro === 'RODANDO', 'text-danger': statusCronometro === 'ENCERRADO', 'text-white': statusCronometro === 'PARADO'}"
-                             style="font-family: 'Courier New', monospace; letter-spacing: 2px;">
-                            {{ tempoFormatado }}
+                        <!-- Seletor de Modo e Display -->
+                        <div class="d-flex flex-column align-items-center w-100 flex-grow-1">
+                            <BButton 
+                                variant="outline-light" size="sm" 
+                                class="mb-2 w-100 text-uppercase fw-bold rounded-pill p-1 mx-auto d-flex align-items-center justify-content-center gap-1 border-secondary" 
+                                style="font-size: 0.65rem; max-width: 200px;"
+                                @click="$emit('trocarModo')" 
+                            >
+                                <span v-if="modoCronometro === 'REAL'">⏱️ TEMPO REAL</span>
+                                <span v-else-if="modoCronometro === 'SIM_90'">⏩ SIMULADO 90 MIN</span>
+                                <span v-else-if="modoCronometro === 'SIM_45'">⏩ SIMULADO 45/45</span>
+                                <small class="opacity-50 ms-1 text-lowercase">({{ duracaoPartida || 10 }}m)</small>
+                            </BButton>
+                            
+                            <!-- Label 1º/2º Tempo -->
+                            <div v-if="labelTempo" class="text-warning fw-bold mb-1" style="font-size: 0.9rem; letter-spacing: 1px;">
+                                {{ labelTempo }}
+                            </div>
+
+                            <!-- Relógio Gigante -->
+                            <div class="fw-bold text-monospace tempo-display" 
+                                :class="{'text-success': statusCronometro === 'RODANDO', 'text-danger': statusCronometro === 'ENCERRADO', 'text-white': statusCronometro === 'PARADO'}"
+                                style="font-family: 'Courier New', monospace; letter-spacing: 2px;">
+                                {{ tempoFormatado }}
+                            </div>
                         </div>
                         
                         <!-- Controles Group -->
@@ -135,10 +155,10 @@ import { BButton, BCard, BFormGroup, BFormInput } from 'bootstrap-vue-next';
 export default {
     components: { BButton, BCard, BFormGroup, BFormInput },
     // ADICIONADO: prop 'nota'
-    // ADICIONADO: props do cronômetro
-    props: ['rodada', 'timeA', 'timeB', 'golsA', 'golsB', 'uniformeA', 'uniformeB', 'dataHora', 'abaAtiva', 'nota', 'tempoFormatado', 'statusCronometro', 'tempoRestante'],
-    // ADICIONADO: emits do cronômetro
-    emits: ['voltar', 'salvar', 'update:dataHora', 'update:abaAtiva', 'sharear', 'update:nota', 'iniciar', 'pausar', 'resetar', 'editarTempo', 'ajustarSegundos'],
+    // ADICIONADO: props do cronômetro (modo, label etc)
+    props: ['rodada', 'timeA', 'timeB', 'golsA', 'golsB', 'uniformeA', 'uniformeB', 'dataHora', 'abaAtiva', 'nota', 'tempoFormatado', 'statusCronometro', 'tempoRestante', 'modoCronometro', 'labelTempo', 'duracaoPartida'],
+    // ADICIONADO: emits do cronômetro (novo emit trocarModo)
+    emits: ['voltar', 'salvar', 'update:dataHora', 'update:abaAtiva', 'sharear', 'update:nota', 'iniciar', 'pausar', 'resetar', 'editarTempo', 'ajustarSegundos', 'trocarModo'],
     data() {
         return {
             abas: [
@@ -205,7 +225,7 @@ export default {
 }
 
 .tempo-display {
-    font-size: 5rem;
+    font-size: 4rem;
     line-height: 1;
     text-align: center;
     width: 100%;
@@ -224,7 +244,7 @@ export default {
         width: 250px;
     }
     .tempo-display {
-        font-size: 4rem;
+        font-size: 3.5rem;
     }
     .main-btn {
         min-height: 60px;
