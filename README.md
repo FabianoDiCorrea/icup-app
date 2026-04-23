@@ -1,50 +1,51 @@
 # ⚽ iCup - Football Manager System
 
-Bem-vindo ao **My Champs**, o sistema de gestão esportiva que aposenta suas planilhas de Excel.
+Bem-vindo ao **iCup**, o sistema de gestão esportiva que aposenta suas planilhas de Excel e centraliza seus campeonatos na palma da mão.
 
-Este projeto é uma **Single Page Application (SPA)** desenvolvida para organizar torneios de futebol (campo, futsal, society), futebol de botão ou campeonatos de e-sports (FIFA, PES) de forma agnóstica, offline e reativa.
+Este projeto é uma **Single Page Application (SPA)** e também um **Aplicativo Android (via Capacitor)** desenvolvido para organizar torneios de futebol (campo, futsal, society), futebol de botão ou campeonatos de e-sports (FIFA, PES) de forma agnóstica, offline e reativa.
 
 ![Vue.js](https://img.shields.io/badge/vuejs-%2335495e.svg?style=for-the-badge&logo=vuedotjs&logoColor=%234FC08D)
 ![Bootstrap](https://img.shields.io/badge/bootstrap-%23563D7C.svg?style=for-the-badge&logo=bootstrap&logoColor=white)
+![Capacitor](https://img.shields.io/badge/Capacitor-Android-blue?style=for-the-badge)
 ![IndexedDB](https://img.shields.io/badge/IndexedDB-LocalForage-yellow?style=for-the-badge)
 
 ---
 
 ## 🚀 O que este sistema faz?
 
-Basicamente, ele transforma você no "Cartola" da sua liga. As principais *features* incluem:
+As principais *features* incluem:
 
-* **Gestão de Clubes:** Cadastro de times com elenco flexível (não exige 11 titulares), escudos personalizados e **esquemas de cores (uniformes)**.
-* **Motor de Campeonatos:**
+* **Gestão de Clubes:** Cadastro de times com escudos personalizados, técnicos e esquemas de cores.
+* **Motor de Campeonatos Profissional:**
     * Pontos Corridos (Turno/Returno).
     * Mata-Mata (Sorteio ou Manual).
-    * **Fase de Grupos Híbrida:** Grupos que evoluem automaticamente para Mata-Mata (ex: cruzamento olímpico 1ºA x 2ºB).
-* **Súmula em Tempo Real:** Uma interface completa para operar a partida, registrando gols, cartões, **linha do tempo (timeline)**, substituições e escolha de uniformes.
-* **Persistência Offline:** Tudo é salvo no `IndexedDB` do navegador. Sem backend, sem delay, sem custos de servidor.
-* **Backup & Restore:** Funcionalidade robusta para exportar (`.json`) e importar dados (com opção de mesclagem inteligente).
+    * **Fase de Grupos Híbrida:** Evolução automática para Mata-Mata com cruzamentos configuráveis.
+    * **Tabela Espelho:** Visualize a classificação atualizada em tempo real dentro da tela de registro de jogos.
+* **Súmula Digital:** Interface completa para operar a partida, registrando gols, cartões e timeline.
+* **Sincronização em Nuvem (Cloud Sync):** Backup fragmentado via GitHub Gists. O sistema utiliza compressão `pako` e divide arquivos grandes em partes de 10MB para evitar estouro de memória em dispositivos móveis.
+* **Atualização OTA (Over-the-Air):** Verificação automática de novas versões com download direto do APK pelo navegador nativo do Android.
+* **Persistência Offline:** Tudo é salvo no `IndexedDB`. Sem necessidade de internet constante para jogar.
 
 ---
 
 ## 🛠️ Stack Tecnológica
 
-O motor debaixo do capô é moderno e leve:
+O motor debaixo do capô:
 
-* **Core:** [Vue.js 3](https://vuejs.org/) (Options API para legibilidade clássica).
-* **UI Framework:** [Bootstrap 5](https://getbootstrap.com/) + `bootstrap-vue-next` (porque ninguém merece escrever CSS de grid do zero).
-* **Banco de Dados:** [LocalForage](https://localforage.github.io/localForage/) (Wrapper elegante para IndexedDB).
-* **Roteamento:** Vue Router 4.
-* **Build Tool:** Vue CLI / Webpack.
+* **Core:** [Vue.js 3](https://vuejs.org/) (Options API).
+* **Mobile Engine:** [Capacitor JS](https://capacitorjs.com/) (Builds nativas para Android).
+* **UI Framework:** [Bootstrap 5](https://getbootstrap.com/) + `bootstrap-vue-next`.
+* **Banco de Dados:** [LocalForage](https://localforage.github.io/localForage/) (IndexedDB).
+* **Compressão:** [Pako](https://github.com/nodeca/pako) (Zlib) para otimização de backup.
 
 ---
 
 ## 💻 Como rodar localmente
 
-Se você quer codar, testar ou apenas brincar de técnico, siga os passos:
-
 1.  **Clone o repositório:**
     ```bash
-    git clone [https://github.com/flpalves/my-champs.git](https://github.com/flpalves/my-champs.git)
-    cd my-champs
+    git clone https://github.com/FabianoDiCorrea/icup-app.git
+    cd icup-app
     ```
 
 2.  **Instale as dependências:**
@@ -57,31 +58,34 @@ Se você quer codar, testar ou apenas brincar de técnico, siga os passos:
     npm run serve
     ```
 
-4.  Acesse `http://localhost:8080` e escale seu time.
+4.  **Sincronizar com Android (opcional):**
+    ```bash
+    npm run build
+    npx cap sync android
+    ```
 
 ---
 
-## 📂 Estrutura do Projeto (Onde mexer?)
+## 📂 Estrutura do Projeto (Mapa da Mina)
 
-Para você não se perder no código, aqui vai o mapa da mina:
-
-* `src/services/DbService.js`: **O Cérebro do Banco.** Toda leitura, escrita, backup e lógica de persistência (IndexedDB) está aqui. Se quiser mudar como os dados são salvos, é aqui que você mexe.
-* `src/utils/GeradorTabela.js`: **O Matemático.** Contém os algoritmos de *Round Robin* (todos contra todos) e geração de chaves de mata-mata.
-* `src/components/`: Onde a mágica visual acontece.
-    * `SumulaJogo.vue`: O componente "monstro" que gerencia a partida. **Dica:** Ele foi refatorado em sub-componentes na pasta `src/components/sumula/` (Header, Eventos, Timeline, etc.).
-    * `DetalhesCampeonato.vue`: Gerencia a classificação e a transição de fases.
-    * `TabelaClassificacao.vue`: A lógica de cálculo de pontos, saldo de gols e ordenação.
+* `src/services/DbService.js`: O Cérebro. Toda persistência e lógica de backup local.
+* `src/services/cloudSync.service.js`: **O Viajante.** Gerencia a fragmentação e o upload/download dos dados para o GitHub.
+* `src/services/VersionService.js`: **O Vigia.** Controla a verificação de versões remotas.
+* `src/utils/GeradorTabela.js`: O Matemático dos algoritmos de torneio.
+* `src/views/Configuracoes.vue`: Interface para gestão de tokens GitHub e Importação/Exportação.
+* `src/views/DetalhesCampeonato.vue`: Gerencia a classificação e a interface de Tabela Espelho.
 
 ---
 
 ## 🔧 Guia de Customização
 
-Quer alterar uma feature? Aqui estão alguns cenários comuns:
-
-### "Quero mudar a regra de pontuação (ex: vitória valendo 2 pontos)"
-Vá em `src/components/DetalhesCampeonato.vue` (ou `TabelaClassificacao.vue`), procure o método `calcularClassificacaoGrupos` ou `calcularStatsBase` e altere a lógica de soma:
+### "Quero mudar a regra de pontuação"
+Vá em `src/views/TabelaClassificacao.vue`, procure o método `calcularStatsBase` e altere a lógica:
 ```javascript
-// Exemplo:
 if (jogo.golsA > jogo.golsB) {
-    tA.pontos += 3; // Mude para 2 aqui se quiser ser "old school"
+    tA.pontos += 3; // Altere para a pontuação desejada
 }
+```
+
+---
+⚽ **iCup** - Organizando a paixão pelo futebol de botão e além.
