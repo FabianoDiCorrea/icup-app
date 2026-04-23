@@ -184,9 +184,8 @@ export default {
       },
       baixarAtualizacao() {
           if (this.urlDownload) {
-              // Tenta abrir em nova aba (padrão)
-              const win = window.open(this.urlDownload, '_blank');
-              // Se falhar (bloqueio de popup ou webview estrito), tenta navegar na mesma janela
+              // _system força a abertura no navegador padrão do Android (Chrome), saindo da "gaiola" do app
+              const win = window.open(this.urlDownload, '_system');
               if (!win) {
                   window.location.href = this.urlDownload;
               }
