@@ -461,3 +461,13 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+/* Força a cor preta no botão interno do input file em navegadores WebKit/Chromium */
+input[type="file"]::file-selector-button {
+  color: #000 !important;
+}
+input[type="file"]::-webkit-file-upload-button {
+  color: #000 !important;
+}
+</style>
