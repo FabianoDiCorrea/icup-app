@@ -1,6 +1,6 @@
 {
-  "version": "1.1.5",
-  "updateMessage": "Novidades: Tabela Espelho nos Confrontos, Escudos Alinhados e Nova Sincronização em Nuvem (GitHub)!",
+  "version": "1.1.6",
+  "updateMessage": "Melhorias visuais na tela de configuração (Upload) e aprimoramento interno do Link de Download.",
   "downloadUrl": "https://raw.githubusercontent.com/FabianoDiCorrea/icup-app/master/release/app-icup.apk",
   "mandatory": false
 }

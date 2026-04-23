@@ -143,7 +143,7 @@
             <label class="form-label fw-bold">Selecione o arquivo:</label>
             <input 
               type="file" 
-              class="form-control mb-3" 
+              class="form-control mb-3 text-dark" 
               accept=".json" 
               ref="fileInput"
               @change="prepararImportacao"
