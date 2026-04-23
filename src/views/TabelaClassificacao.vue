@@ -47,7 +47,7 @@
   <div class="d-flex align-items-center gap-2">
 
     <!-- SIGLAS: TÉCNICO + PAÍS -->
-    <span class="fw-bold">
+    <span class="fw-bold d-inline-block text-end" style="min-width: 75px;">
       <span v-if="time.tecnico" class="tecnico-label me-1">
         {{ time.tecnico }}
       </span>
@@ -129,7 +129,7 @@
   <div class="d-flex align-items-center gap-2">
 
     <!-- SIGLAS: TÉCNICO + PAÍS -->
-    <span class="fw-bold">
+    <span class="fw-bold d-inline-block text-end" style="min-width: 75px;">
       <span v-if="time.tecnico" class="tecnico-label me-1">
         {{ time.tecnico }}
       </span>

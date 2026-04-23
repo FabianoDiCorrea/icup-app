@@ -136,6 +136,54 @@
 
                 </div>
                 <hr />
+
+                <div v-if="temGrupo && tabelaGrupoAtual.length" class="mb-4 mx-3">
+                  <BTableSimple hover responsive striped class="mb-0 align-middle small table-sm border rounded">
+                    <BThead variant="dark">
+                      <BTr>
+                        <BTh class="text-center">#</BTh>
+                        <BTh>Time</BTh>
+                        <BTh class="text-center" title="Pontos">P</BTh>
+                        <BTh class="text-center" title="Jogos">J</BTh>
+                        <BTh class="text-center" title="Vitórias">V</BTh>
+                        <BTh class="text-center" title="Empates">E</BTh>
+                        <BTh class="text-center" title="Derrotas">D</BTh>
+                        <BTh class="text-center" title="Gols Pró">GP</BTh>
+                        <BTh class="text-center" title="Gols Contra">GC</BTh>
+                        <BTh class="text-center" title="Saldo de Gols">SG</BTh>
+                        <BTh class="text-center" title="Aproveitamento">%</BTh>
+                      </BTr>
+                    </BThead>
+                    <BTbody>
+                      <BTr v-for="(time, index) in tabelaGrupoAtual" :key="time.id">
+                        <BTd class="text-center text-muted fw-bold">{{ index + 1 }}º</BTd>
+                        <BTd style="min-width: 150px;">
+                          <div class="d-flex align-items-center gap-2 text-truncate">
+                            <span class="fw-bold d-inline-block text-end" style="min-width: 75px;">
+                              <span v-if="time.tecnico" class="tecnico-label me-1">
+                                {{ time.tecnico }}
+                              </span>
+                              <span v-if="campeonato.adicionarNacionalidade && time.pais" class="pais-label">
+                                {{ time.pais.substring(0,3).toUpperCase() }}
+                              </span>
+                            </span>
+                            <img :src="time.escudo" style="width: 20px; height: 20px; object-fit: contain;" onerror="this.style.display='none'" />
+                            <span class="fw-bold">{{ time.nome }}</span>
+                          </div>
+                        </BTd>
+                        <BTd class="text-center fw-bold text-primary">{{ time.pontos }}</BTd>
+                        <BTd class="text-center">{{ time.jogos || 0 }}</BTd>
+                        <BTd class="text-center">{{ time.vitorias }}</BTd>
+                        <BTd class="text-center">{{ time.empates }}</BTd>
+                        <BTd class="text-center">{{ time.derrotas }}</BTd>
+                        <BTd class="text-center text-muted">{{ time.golsPro }}</BTd>
+                        <BTd class="text-center text-muted">{{ time.golsContra }}</BTd>
+                        <BTd class="text-center fw-bold">{{ time.saldoGols }}</BTd>
+                        <BTd class="text-center">{{ calcularAproveitamento(time.pontos, time.jogos) }}%</BTd>
+                      </BTr>
+                    </BTbody>
+                  </BTableSimple>
+                </div>
                 
                 <div class="lista-jogos">
                     <div v-if="jogosDaRodada.length === 0" class="text-center text-muted py-3">
@@ -163,15 +211,15 @@
     {{ getTimeCompleto(jogo.timeA).pais.substring(0,3).toUpperCase() }}
   </span>
 
+  <span class="fw-bold">
+    {{ getTimeCompleto(jogo.timeA).nome }}
+  </span>
+
   <img
     :src="getTimeCompleto(jogo.timeA).escudo"
     style="width: 26px; height: 26px; object-fit: contain"
     onerror="this.style.display='none'"
   />
-
-  <span class="fw-bold">
-    {{ getTimeCompleto(jogo.timeA).nome }}
-  </span>
 
 </div>
 
@@ -183,8 +231,8 @@
   <span v-if="campeonato.adicionarNacionalidade && getTimeCompleto(jogo.timeA)?.pais" class="text-info">
     {{ getTimeCompleto(jogo.timeA).pais.substring(0,3).toUpperCase() }}
   </span>
-  <img :src="getTimeCompleto(jogo.timeA).escudo" style="width: 20px; height: 20px; object-fit: contain" onerror="this.style.display='none'" />
   <span class="fw-bold">{{ getSigla(jogo.timeA) }}</span>
+  <img :src="getTimeCompleto(jogo.timeA).escudo" style="width: 20px; height: 20px; object-fit: contain" onerror="this.style.display='none'" />
 </div>
 
 
@@ -292,15 +340,15 @@
                                     
                                     <div class="d-none d-md-flex align-items-center gap-2 text-truncate">
 
-  <span class="fw-bold">
-    {{ getTimeCompleto(jogo.timeB).nome }}
-  </span>
-
   <img
     :src="getTimeCompleto(jogo.timeB).escudo"
     style="width: 26px; height: 26px; object-fit: contain"
     onerror="this.style.display='none'"
   />
+
+  <span class="fw-bold">
+    {{ getTimeCompleto(jogo.timeB).nome }}
+  </span>
 
   <span
     v-if="campeonato.adicionarNacionalidade && getTimeCompleto(jogo.timeB)?.pais"
@@ -320,8 +368,8 @@
 
 <!-- VISTA MOBILE (Portfólio) - Espelhada -->
 <div class="d-flex d-md-none align-items-center gap-1 text-truncate" style="font-size: 0.8rem;">
-  <span class="fw-bold">{{ getSigla(jogo.timeB) }}</span>
   <img :src="getTimeCompleto(jogo.timeB).escudo" style="width: 20px; height: 20px; object-fit: contain" onerror="this.style.display='none'" />
+  <span class="fw-bold">{{ getSigla(jogo.timeB) }}</span>
   <span v-if="campeonato.adicionarNacionalidade && getTimeCompleto(jogo.timeB)?.pais" class="text-info">
     {{ getTimeCompleto(jogo.timeB).pais.substring(0,3).toUpperCase() }}
   </span>
@@ -440,13 +488,13 @@ import {
 } from '../utils/GeradorTabela.js';
 
 import {
-    BCard, BButton, BSpinner, BPagination, BRow, BCol, BFormInput, BAlert, BModal, BFormSelect, BBadge
+    BCard, BButton, BSpinner, BPagination, BRow, BCol, BFormInput, BAlert, BModal, BFormSelect, BBadge, BTableSimple, BThead, BTbody, BTr, BTh, BTd
 } from 'bootstrap-vue-next';
 
 export default {
     name: 'DetalhesCampeonato',
     components: {
-        BCard, BButton, BSpinner, BPagination, BRow, BCol, BFormInput, BAlert, BModal, BFormSelect, BBadge
+        BCard, BButton, BSpinner, BPagination, BRow, BCol, BFormInput, BAlert, BModal, BFormSelect, BBadge, BTableSimple, BThead, BTbody, BTr, BTh, BTd
     },
     data() {
   return {
@@ -630,6 +678,29 @@ export default {
 },
 
 
+        tabelaGrupoAtual() {
+  if (!this.temGrupo || !this.grupoAtual) return [];
+
+  const timesNoGrupo = this.tabelaBase.filter(t => {
+    if (!this.campeonato.grupos) return false;
+    const grupo = this.campeonato.grupos.find(g => g.nome === this.grupoAtual);
+    return grupo ? grupo.times.some(timeGrupo => timeGrupo.id === t.id) : false;
+  });
+
+  return timesNoGrupo.sort((a, b) => {
+    if (b.pontos !== a.pontos) return b.pontos - a.pontos;
+    if (b.vitorias !== a.vitorias) return b.vitorias - a.vitorias;
+    if (b.saldoGols !== a.saldoGols) return b.saldoGols - a.saldoGols;
+    if (b.golsPro !== a.golsPro) return b.golsPro - a.golsPro;
+    if (a.golsContra !== b.golsContra) return a.golsContra - b.golsContra;
+
+    const cd = this.resultadoConfrontoDiretoGrupo(a.id, b.id, this.grupoAtual);
+    if (cd !== 0) return cd;
+
+    return a.nome.localeCompare(b.nome);
+  });
+},
+
         tabelaBase() {
   if (!this.campeonato || !this.campeonato.jogos) return [];
 
@@ -640,6 +711,7 @@ export default {
     stats[t.id] = {
       ...t,
       pontos: 0,
+      jogos: 0,
       vitorias: 0,
       empates: 0,
       derrotas: 0,
@@ -652,9 +724,17 @@ export default {
   // percorre jogos
   this.campeonato.jogos.forEach(j => {
     if (!j.finalizado) return;
+    
+    // Ignora os jogos que são de fase de mata-mata se existirem
+    if (j.fase) return;
 
     const A = stats[j.timeA.id];
     const B = stats[j.timeB.id];
+    
+    if (!A || !B) return;
+
+    A.jogos = (A.jogos || 0) + 1;
+    B.jogos = (B.jogos || 0) + 1;
 
     A.golsPro += j.golsA;
     A.golsContra += j.golsB;
@@ -891,6 +971,59 @@ podeEncerrarLigaComMataMata() {
     },
     methods: {
 
+calcularAproveitamento(pontos, jogos) {
+  if (!jogos || jogos === 0) return '0.0';
+  const aproveitamento = (pontos / (jogos * 3)) * 100;
+  return aproveitamento.toFixed(1);
+},
+
+resultadoConfrontoDiretoGrupo(idA, idB, nomeGrupo) {
+  if (!this.campeonato || !this.campeonato.jogos) return 0;
+
+  const jogosDoGrupo = this.campeonato.jogos.filter(j => {
+    if (j.fase) return false;
+    const grupo = this.campeonato.grupos.find(g =>
+      g.nome === nomeGrupo &&
+      g.times.some(t => t.id === j.timeA.id) &&
+      g.times.some(t => t.id === j.timeB.id)
+    );
+    return !!grupo;
+  });
+
+  let pontosA = 0;
+  let pontosB = 0;
+  let saldoA = 0;
+  let saldoB = 0;
+
+  jogosDoGrupo.forEach(j => {
+    if (!j.finalizado) return;
+
+    let golsA, golsB;
+
+    if (j.timeA.id === idA && j.timeB.id === idB) {
+      golsA = j.golsA;
+      golsB = j.golsB;
+    } else if (j.timeA.id === idB && j.timeB.id === idA) {
+      golsA = j.golsB;
+      golsB = j.golsA;
+    } else return;
+
+    saldoA += golsA - golsB;
+    saldoB += golsB - golsA;
+
+    if (golsA > golsB) pontosA += 3;
+    else if (golsB > golsA) pontosB += 3;
+    else {
+      pontosA += 1;
+      pontosB += 1;
+    }
+  });
+
+  if (pontosA !== pontosB) return pontosB - pontosA;
+  if (saldoA !== saldoB) return saldoB - saldoA;
+
+  return 0;
+},
 
         irParaPagina(p) {
   this.paginaAtual = p;

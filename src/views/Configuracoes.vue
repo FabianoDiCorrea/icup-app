@@ -53,6 +53,47 @@
       </BCol>
     </BRow>
 
+    <!-- Sincronização em Nuvem (GitHub) -->
+    <BRow class="mb-4">
+      <BCol md="12">
+        <BCard title="☁️ Sincronização em Nuvem (GitHub)" class="shadow-sm border-info">
+          <p class="text-muted mb-2">
+            Salve seus campeonatos na nuvem vinculando um Token do GitHub. Isso permite puxar e enviar seu save oficial entre computador e tablet de forma fácil.
+          </p>
+
+          <BFormGroup label="GitHub Personal Access Token:" label-for="github-token" class="mb-3">
+            <BInputGroup>
+              <BFormInput 
+                id="github-token" 
+                v-model="githubToken" 
+                :type="mostrarToken ? 'text' : 'password'"
+                placeholder="Cole seu Token (com permissão 'repo') aqui..."
+              />
+              <template #append>
+                <BButton variant="outline-secondary" @click="mostrarToken = !mostrarToken">
+                  {{ mostrarToken ? '👁️' : '🚫' }}
+                </BButton>
+                <BButton variant="info" class="text-white" @click="salvarTokenGithub">
+                  💾 Salvar
+                </BButton>
+              </template>
+            </BInputGroup>
+          </BFormGroup>
+
+          <div class="d-flex gap-2">
+            <BButton variant="primary" class="flex-grow-1 fw-bold" @click="enviarParaNuvem" :disabled="!githubTokenSalvo || processandoNuvem">
+              <span v-if="processandoNuvem && acaoNuvem === 'upload'">⏳ Enviando...</span>
+              <span v-else>☁️ Enviar para Nuvem</span>
+            </BButton>
+            <BButton variant="success" class="flex-grow-1 fw-bold" @click="puxarDaNuvem" :disabled="!githubTokenSalvo || processandoNuvem">
+              <span v-if="processandoNuvem && acaoNuvem === 'download'">⏳ Baixando...</span>
+              <span v-else>📥 Puxar da Nuvem</span>
+            </BButton>
+          </div>
+        </BCard>
+      </BCol>
+    </BRow>
+
     <BRow>
       <BCol md="6" class="mb-4">
         <BCard title="📤 Exportar Dados" class="h-100 shadow-sm border-primary">
@@ -168,6 +209,7 @@
 <script>
 import DbService from '../services/DbService.js';
 import FootballApiService from '../services/FootballApiService.js';
+import { cloudSyncService } from '../services/cloudSync.service.js';
 import { BCard, BButton, BRow, BCol, BFormGroup, BFormInput, BInputGroup, BModal } from 'bootstrap-vue-next';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
@@ -189,12 +231,21 @@ export default {
       apiConfigurada: false,
       // Controle do Backup Nativo
       mostrarModalBackup: false,
-      nomeArquivoBackup: ''
+      nomeArquivoBackup: '',
+      // Nuvem
+      githubToken: '',
+      mostrarToken: false,
+      githubTokenSalvo: false,
+      processandoNuvem: false,
+      acaoNuvem: ''
     }
   },
   mounted() {
     this.apiKey = FootballApiService.getApiKey();
     this.apiConfigurada = FootballApiService.isConfigured();
+    
+    this.githubToken = localStorage.getItem('icup_github_token') || '';
+    this.githubTokenSalvo = !!this.githubToken;
   },
   methods: {
     // --- EXPORTAR ---
@@ -296,6 +347,50 @@ export default {
       FootballApiService.setApiKey(this.apiKey.trim());
       this.apiConfigurada = true;
       alert("✅ Chave API salva com sucesso!\n\nVocê já pode usar o botão '🔄 Atualizar Elenco da API' ao cadastrar/editar times.");
+    },
+
+    // --- MÉTODOS DE NUVEM (CLOUD SYNC) ---
+    salvarTokenGithub() {
+      if (!this.githubToken || this.githubToken.trim() === '') {
+        alert("⚠️ Digite um token válido!");
+        return;
+      }
+      localStorage.setItem('icup_github_token', this.githubToken.trim());
+      this.githubTokenSalvo = true;
+      alert("✅ Token do GitHub salvo com sucesso!");
+    },
+
+    async enviarParaNuvem() {
+      if (!confirm("Isso irá sobrescrever o backup que está na nuvem com os dados ATUAIS deste dispositivo. Continuar?")) return;
+      
+      this.processandoNuvem = true;
+      this.acaoNuvem = 'upload';
+      try {
+        await cloudSyncService.uploadData(this.githubToken.trim());
+        alert("✅ Backup enviado para a nuvem com sucesso!");
+      } catch (e) {
+        alert("Erro ao enviar: " + e.message);
+      } finally {
+        this.processandoNuvem = false;
+        this.acaoNuvem = '';
+      }
+    },
+
+    async puxarDaNuvem() {
+      if (!confirm("ATENÇÃO: Isso apagará TODOS os dados atuais do seu dispositivo e os substituirá pelo backup da nuvem. Continuar?")) return;
+
+      this.processandoNuvem = true;
+      this.acaoNuvem = 'download';
+      try {
+        await cloudSyncService.downloadData(this.githubToken.trim());
+        alert("✅ Backup restaurado com sucesso da nuvem! O app será recarregado.");
+        window.location.reload();
+      } catch (e) {
+        alert("Erro ao baixar: " + e.message);
+      } finally {
+        this.processandoNuvem = false;
+        this.acaoNuvem = '';
+      }
     },
 
     // --- MÉTODOS NATIVOS (ANDROID) ---

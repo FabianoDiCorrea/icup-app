@@ -1,5 +1,5 @@
 {
-  "version": "1.1.4",
-  "apk_url": "https://github.com/FabianoDiCorrea/icup-app/releases/download/v1.1.4/icup.apk",
-  "changelog": "V1.1.4 - Melhorias no Cronômetro Simulado e Propagação de Configuração."
+  "version": "1.1.5",
+  "updateMessage": "Novidades: Tabela Espelho nos Confrontos, Escudos Alinhados e Nova Sincronização em Nuvem (GitHub)!",
+  "mandatory": false
 }
