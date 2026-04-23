@@ -13,7 +13,7 @@ export default {
             const remoteVersion = data.version;
             const localVersion = version;
 
-            const downloadUrl = data.apk_url;
+            const downloadUrl = data.downloadUrl || data.apk_url;
 
             return {
                 hasUpdate: this.compareVersions(remoteVersion, localVersion) > 0,

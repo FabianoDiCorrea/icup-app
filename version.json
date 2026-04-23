@@ -2,5 +2,6 @@
   "version": "1.1.6",
   "updateMessage": "Melhorias visuais na tela de configuração (Upload) e aprimoramento interno do Link de Download.",
   "downloadUrl": "https://raw.githubusercontent.com/FabianoDiCorrea/icup-app/master/release/app-icup.apk",
+  "apk_url": "https://raw.githubusercontent.com/FabianoDiCorrea/icup-app/master/release/app-icup.apk",
   "mandatory": false
 }
